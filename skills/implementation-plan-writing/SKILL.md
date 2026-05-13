@@ -122,7 +122,7 @@ Output the report in chat as a short ✓/⚠/✗ table. Fix until clean before r
 - HTML (review): `<cwd>/docs/impl-plans/<YYYY-MM-DD>-<slug>.html`
 - MD (canonical): `<cwd>/docs/impl-plans/<YYYY-MM-DD>-<slug>.md`
 
-Reuse the spec's slug for traceability. Never overwrite — collisions append `-v2`, `-v3`, etc. on BOTH files together.
+Reuse the spec's slug for traceability. **If a file with the same name already exists, treat it as a continuation** — read it, prepend a new changelog row (see [Changelog](#changelog)), and update in place on BOTH files together. Don't write `-v2`. If the existing file is unrelated work that genuinely collided, ask the user before clobbering.
 
 ### MD template (`assets/plan-template.md`)
 
@@ -141,6 +141,7 @@ Plain markdown with placeholder tokens. Mermaid uses fenced ` ```mermaid ` block
 | `{{POSTFLIGHT}}` | Bulleted final checks | |
 | `{{RISKS}}` | Execution-time risks + mitigations | |
 | `{{NOTES}}` | Cross-cutting notes | |
+| `{{CHANGELOG_ROWS_MD}}` | One row per revision, newest at top | See [Changelog](#changelog) |
 
 ### HTML template (`assets/plan-template.html`)
 
@@ -153,6 +154,7 @@ HTML-only metadata placeholders:
 | `{{STATUS_HTML}}` | `<span class="status-draft">Draft</span>` or `<span class="status-approved">Approved</span>` |
 | `{{SPEC_LINK_HTML}}` | `<a href="../specs/<file>"><file></a>` or `<em>none — standalone plan</em>` |
 | `{{STEPS_HTML}}` | Steps as `<article class="step">` cards — see template for the structure |
+| `{{CHANGELOG_ROWS}}` | One `<tr>` per revision, newest at top | See [Changelog](#changelog) |
 
 Content rules:
 
@@ -187,6 +189,30 @@ For steps that change shared state (migrations, schema, feature flags, queue top
 
 For manual steps (`Manual: yes — <reason>` in the MD template), render the card with `<span class="step-deps">manual — <reason></span>` in the header and skip the verification command field (subagents won't run it).
 
+## Changelog
+
+Both files include a changelog at the top — HTML in a collapsible `<details>` block, MD as a small markdown table. The changelog is how readers see *what changed since last review* and replaces `-v2` versioning entirely.
+
+**Initial write** — one row in each file.
+
+HTML (`{{CHANGELOG_ROWS}}`):
+```html
+<tr><td><time>YYYY-MM-DD HH:MM</time></td><td>Initial draft</td></tr>
+```
+
+MD (`{{CHANGELOG_ROWS_MD}}`):
+```markdown
+| 2026-05-13 14:32 | Initial draft |
+```
+
+**On every revision** — read the existing file, prepend a new row, write the updated file back.
+
+Rules:
+- Timestamp: local time, 24-hour, minute-precision, taken at the moment of the revision.
+- Note column: one short sentence — what changed *and* why (cite the comment / new info / user request). For DAG changes, also mention which wave was affected.
+- Newest at top. Never delete older rows.
+- When the MD is written after HTML approval, copy ALL of the HTML's changelog rows into the MD's `## Changelog` table so the two files agree.
+
 ## Revision loop
 
 If the user wants changes after reviewing the HTML:
@@ -194,8 +220,8 @@ If the user wants changes after reviewing the HTML:
 1. Capture feedback in one batch.
 2. Update the relevant steps (and re-check the DAG if dependencies shifted).
 3. Re-run self-review on changed sections.
-4. Write a new HTML at `-v2`, etc. Do not mutate the original.
-5. On final approval, write the MD with the same version suffix as the approved HTML.
+4. **Update the HTML in place** — prepend a new row to the changelog (see [Changelog](#changelog)). No `-v2`.
+5. On final approval, write/update the MD in place and copy the changelog rows across so both files agree.
 
 ## Review server lifecycle
 
@@ -262,7 +288,7 @@ Treat each as a revision request:
 2. Group by intent — *edits*, *step splits/merges* (user thinks a step is too big/small), *dependency changes* (rewire the DAG), *questions*, *proposed-but-unclear*.
 3. Apply edits. If the DAG changes, re-derive waves and verify acyclicity. If a step is split, update downstream `Depends on` references.
 4. Re-run the self-review on the changed sections.
-5. Regenerate the HTML as `-v2`. Don't write the MD until the user re-approves.
+5. **Update the HTML in place** and prepend a changelog row summarizing what was revised (see [Changelog](#changelog)). Don't write/update the MD until the user re-approves the HTML.
 6. In your reply, list each comment with action taken (`✓ applied`, `→ answered inline`, `? clarification needed`) so the user can verify nothing was missed.
 
 ## Anti-patterns

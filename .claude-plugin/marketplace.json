@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "oyster",
-      "source": "./plugins/oyster",
+      "source": "./",
       "description": "Seven skills (brainstorming → spec → impl plan → test review → implementation → post-implementation review) plus an optional roast-me adversarial review. Each planning phase produces an HTML preview with inline-comment support, backed by a small local review server."
     }
   ]

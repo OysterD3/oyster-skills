@@ -26,6 +26,7 @@ Drive this with TodoWrite — one todo per item. Mark each complete as you go.
 - [ ] **Research the codebase.** Grep/read relevant files: existing patterns, the module that will change, similar features already shipped, the data model, the auth layer. Note conflicts between user's framing and what the code actually does.
 - [ ] **Research external context if libraries/APIs are involved.** Use `mcp__context7__resolve-library-id` + `mcp__context7__query-docs` for library docs, or WebFetch for specific URLs. Skip if pure internal logic.
 - [ ] **Summarize findings.** 3–6 bullets: what exists, what's missing, what surprised you, conflicts with the user's framing. Surface the riskiest unknown — that's where the interview starts.
+- [ ] **Sketch mockup directions (UI only).** If the change introduces new visual surface (screen, page, modal, prominent component), propose 2–4 named layout directions with ASCII previews in a single `AskUserQuestion`. The pick frames the rest of the interview. See [UI mockup sampling](#ui-mockup-sampling). Skip for pure backend/schema/infra/refactor/copy work.
 - [ ] **Interview loop.** Batch independent questions, serialize dependent ones (see operating rule #2). Continue until the plan answers: *which files change, what contracts/types, what data flow, what failure modes, what's explicitly out of scope*. See [Question patterns](#question-patterns) below.
 - [ ] **Challenge the initial approach at least once** if a credible better path exists. Cite the specific weakness. If the user holds firm after your reasoning, accept and move on.
 - [ ] **Security pass.** Read [references/security-checklist.md](references/security-checklist.md) and walk the relevant items with the user. Mandatory — do not skip even when the change "feels" non-security.
@@ -57,6 +58,54 @@ Quote what they said, then the weakness, then the alternative.
 ### Force a scope decision
 When the user is conflating two features.
 > "What you're describing is really two changes: the forwarding pipeline AND the audit trail. They have different failure modes. Both in this PR, or land forwarding first and audit as a follow-up?"
+
+## UI mockup sampling
+
+When the brainstorm touches new visual surface, hand the user concrete layouts to choose from *before* driving deeper questions — otherwise the rest of the interview shoots at an undefined target. The chosen direction frames everything downstream: which fields appear where, which actions are primary, which states need design.
+
+**Sample when:** new screen, page, dashboard, list, detail view, modal, wizard; major restructure of an existing screen; a new component that lands in multiple places.
+
+**Skip when:** pure backend, schema, infra, refactor, bug fix, or copy/color tweak. If unsure, ask once: *"Is there visual surface here, or is it pure logic?"*
+
+### How
+
+Produce **2–4 directions** that vary along ONE major axis — not random variants. Pick the axis that most shapes the user's tradeoff:
+
+- *Information density*: table vs card grid vs split-pane
+- *Flow shape*: wizard vs single form vs inline editing
+- *Navigation*: sidebar vs tabs vs breadcrumb stack
+- *Primary action surface*: header CTA vs floating action vs row-inline
+
+Each option must include:
+
+- A **name** (1–2 words: "Compact table", "Card grid", "Split-pane")
+- An **ASCII preview** ~12 lines × 60 cols showing layout *zones*, not real content. Use box-drawing chars; mark interactive zones (`[btn]`, `▸`/`▾` for expand, `…` for overflow).
+- A one-line **best for / tradeoff** tag
+
+Present them in a **single `AskUserQuestion`** call — `header: "Mockup"`, `multiSelect: false` (previews aren't supported for multi-select). Each option's `preview` = the ASCII, `description` = the tradeoff.
+
+After the pick: restate the choice in one sentence, then resume the interview with the chosen layout assumed (subsequent questions frame against it — *"in the split-pane variant, where does bulk-edit live?"*).
+
+### Higher-fidelity mockups
+
+ASCII is intentional — brainstorming is read-only and fast. If the user wants pixel-fidelity mockups, that's the `frontend-design` skill's job *after* spec sign-off. Note the deferral in `{{OUT_OF_SCOPE}}` or `{{EXECUTION_ORDER}}` so it's tracked.
+
+### Example sample set (settings page)
+
+```
+Compact table          Card grid              Split-pane
+┌──────────────────┐   ┌────┐┌────┐┌────┐    ┌────┬───────────┐
+│ filter…   [+ new]│   │name││name││name│    │ ▸  │ name      │
+├──┬──────┬────────┤   │role││role││role│    │ ▸  │ email     │
+│☐ │ row  │ … │   └────┘└────┘└────┘    │ ▾  │ role  ▾   │
+│☐ │ row  │ … │   ┌────┐┌────┐┌────┐    │ ▸  │ ...       │
+│☐ │ row  │ … │   │…   ││…   ││…   │    │    │           │
+└──┴──────┴────────┘   └────┘└────┘└────┘    │    │  [save]   │
+dense; bulk edit       scannable; per-       deep edit;
+shines                 item primary action   fewer items
+```
+
+(Real previews live inside `AskUserQuestion` option `preview` fields — the table above is just to illustrate "different axes, similar visual budget".)
 
 ## Review server lifecycle
 
@@ -124,10 +173,8 @@ Treat each comment as a revision request:
 1. Use the `section` + `quote` together to locate the exact spot in your working plan.
 2. Group by intent — *edits* (clear textual change), *questions* (need a one-line answer back), *proposed-but-unclear* (need a clarifying question).
 3. Apply the edits. Answer questions inline in chat. Ask ONE clarifying question only if a "proposed-but-unclear" item truly needs disambiguation.
-4. Regenerate the HTML as `-v2` — don't mutate the original. (The v1 HTML and its `comments.json` together form the audit trail of what was considered.)
+4. **Update the HTML in place.** Read the current file, regenerate with the revised content, and prepend a new row to the changelog table summarizing what changed (see [Changelog](#changelog)). The accumulated `comments.json` and changelog together form the audit trail — no `-v2` files.
 5. In your reply, list each comment with the action taken (`✓ applied`, `→ answered inline`, `? clarification needed`) so the user can verify nothing was missed.
-
-If only one or two trivial comments need addressing (typo, one-word fix), you can revise in-place without a version bump — ask the user which they prefer if it's ambiguous.
 
 ## Anti-patterns
 
@@ -147,7 +194,7 @@ After sign-off in chat, write a single HTML file the user can open in a browser 
 
 - Directory: `<cwd>/docs/brainstorming/` — relative to the current working directory where the conversation started. Create the directory if missing.
 - Filename: `<YYYY-MM-DD>-<kebab-slug>.html` where the slug is 2–5 words capturing the goal (e.g. `2026-05-13-telegram-forward-dedup.html`). Date sorts naturally; slug makes it scannable.
-- Never overwrite an existing file. If a filename collides, append `-v2`, `-v3`, etc.
+- **If a file with the same name already exists, treat it as a continuation.** Read it, prepend a new changelog row, and update in place. Don't write `-v2`. If the existing file is unrelated work that genuinely collided, ask the user before clobbering — they'll usually pick a different slug.
 
 ### How to render it
 
@@ -169,6 +216,30 @@ After sign-off in chat, write a single HTML file the user can open in a browser 
 | `{{OUT_OF_SCOPE}}` | What is explicitly NOT in this change | `<ul>` |
 | `{{OPEN_RISKS}}` | Unresolved risks, deferred mitigations from the security pass | One `<li>` per risk — already wrapped in `<ul class="risks">` by the template |
 | `{{SECURITY_SUMMARY}}` | One-line-per-section summary of the security pass | `<table>` with columns *Area*, *Decision*. Use "N/A — <reason>" for sections that didn't apply |
+| `{{CHANGELOG_ROWS}}` | One `<tr>` per revision, newest at top | See [Changelog](#changelog) below |
+
+### Changelog
+
+The template includes a collapsible **Changelog** block in the header. It's the at-a-glance "what changed since the last review" — and replaces `-v2` versioning entirely.
+
+**Initial write** — one row:
+
+```html
+<tr><td><time>YYYY-MM-DD HH:MM</time></td><td>Initial draft</td></tr>
+```
+
+**On every revision** — read the existing file, prepend a row, write the updated file back:
+
+```html
+<tr><td><time>YYYY-MM-DD HH:MM</time></td><td>Switched dedup to advisory lock per comment on Open risks</td></tr>
+<tr><td><time>YYYY-MM-DD HH:MM</time></td><td>Initial draft</td></tr>
+```
+
+Rules:
+- Timestamp is local time, 24-hour, minute-precision. Use the moment of the revision, not the brainstorm start.
+- Note column: one short sentence — what changed *and* why (cite the comment, the new info, or the user request).
+- Newest at top. Never delete older rows.
+- Don't bundle two unrelated revisions into one row; add separate rows so each change is auditable.
 
 ### Diagrams
 
@@ -227,7 +298,7 @@ sequenceDiagram
 
 Tell the user one short message containing the file path and that you're stopping. Suggest they `open <path>` (macOS) to view. Do not start spec writing or implementation. Wait for the user to come back with approval or revisions.
 
-If they request revisions, re-run the relevant parts of the interview, then write a new `-v2` file rather than mutating the original — the prior version is the audit trail of what was considered.
+If they request revisions, re-run the relevant parts of the interview, then update the HTML in place and prepend a row to the [changelog](#changelog) describing what was revised. The `comments.json` plus changelog together are the audit trail.
 
 ## When to exit early
 

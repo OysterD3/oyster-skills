@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{TITLE}} — Impl plan</title>
+<title>{{TITLE}} — Spec</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -25,12 +25,64 @@
     color: var(--fg);
     -webkit-font-smoothing: antialiased;
   }
-  main {
-    max-width: 880px;
+  main { min-width: 0; }
+  .page {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 860px);
+    gap: 48px;
+    max-width: 1192px;
     margin: 0 auto;
     padding: 56px 32px 96px;
   }
-  header.doc { margin-bottom: 40px; }
+  @media (max-width: 1199px) {
+    .page { grid-template-columns: minmax(0, 860px); justify-content: center; gap: 0; }
+    .toc-rail { display: none !important; }
+  }
+  .toc-rail {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.4;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+  .toc-rail::-webkit-scrollbar { width: 6px; }
+  .toc-rail::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  .toc-rail h4 {
+    margin: 0 0 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+    padding-left: 12px;
+  }
+  .toc-rail nav ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .toc-rail nav li { margin: 0; }
+  .toc-rail nav a {
+    display: block;
+    padding: 5px 12px;
+    color: var(--muted);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    line-height: 1.4;
+  }
+  .toc-rail nav a:hover { color: var(--fg); background: var(--surface); }
+  .toc-rail nav a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(88,166,255,0.07);
+    font-weight: 500;
+  }
+  header { margin-bottom: 40px; }
   .meta {
     font-size: 12px;
     color: var(--muted);
@@ -116,27 +168,98 @@
     font-family: var(--mono);
     font-size: 13px;
     background: var(--surface);
-    padding: 12px 14px;
+    padding: 14px 16px;
     border-radius: 6px;
     border: 1px solid var(--line);
     color: var(--fg);
     overflow-x: auto;
     line-height: 1.5;
-    margin: 6px 0;
   }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    background: var(--surface);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--surface-2);
+  }
+  tr:last-child td { border-bottom: none; }
   .diagram {
+    position: relative;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 6px;
     padding: 18px;
     margin: 14px 0;
-    overflow-x: auto;
   }
   .diagram pre.mermaid {
     margin: 0;
     background: transparent;
     text-align: center;
     font-family: var(--mono);
+  }
+  .diagram-canvas {
+    position: relative;
+    height: 480px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: grab;
+  }
+  .diagram-canvas:active { cursor: grabbing; }
+  .diagram-canvas > svg { width: 100%; height: 100%; max-width: none; display: block; }
+  .diagram-toolbar {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 2px;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .diagram-canvas:hover .diagram-toolbar { opacity: 1; }
+  .diagram-toolbar button {
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    width: 26px; height: 26px;
+    font: 600 13px var(--mono);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .diagram-toolbar button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--surface-2);
+  }
+  .diagram-hint {
+    position: absolute;
+    bottom: 4px;
+    left: 8px;
+    font: 10px var(--mono);
+    color: var(--muted);
+    pointer-events: none;
+    opacity: 0.5;
+    user-select: none;
   }
   .diagram + .caption {
     font-size: 12px;
@@ -145,88 +268,27 @@
     margin-bottom: 14px;
     text-align: center;
   }
-
-  /* Step cards */
-  article.step {
+  .ac-list { counter-reset: ac; padding-left: 0; list-style: none; }
+  .ac-list li {
+    counter-increment: ac;
+    padding: 10px 12px 10px 44px;
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 18px 20px 16px;
-    margin: 14px 0;
-    scroll-margin-top: 24px;
-  }
-  article.step header.step-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 10px;
-  }
-  article.step .step-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 28px;
-    height: 28px;
-    padding: 0 8px;
-    background: var(--surface-2);
-    color: var(--accent);
-    border: 1px solid var(--line);
     border-radius: 6px;
+    margin: 8px 0;
+    position: relative;
+  }
+  .ac-list li::before {
+    content: "AC" counter(ac);
+    position: absolute;
+    left: 12px;
+    top: 10px;
     font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-  article.step h3 {
-    flex: 1;
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.005em;
-  }
-  article.step .step-deps {
     font-size: 11px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-family: var(--mono);
-    white-space: nowrap;
-  }
-  article.step .step-goal {
-    margin: 0 0 12px;
-    color: var(--fg);
-    font-size: 14px;
-  }
-  article.step dl.step-fields {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 6px 18px;
-    margin: 0;
-    font-size: 14px;
-  }
-  article.step dl.step-fields dt {
-    color: var(--muted);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    color: var(--accent);
     font-weight: 600;
-    padding-top: 4px;
+    letter-spacing: 0.04em;
   }
-  article.step dl.step-fields dd {
-    margin: 0;
-    min-width: 0;
-  }
-  article.step dl.step-fields dd ul {
-    margin: 0;
-    padding-left: 18px;
-  }
-  article.step dl.step-fields dd pre.code {
-    margin: 0;
-  }
-  article.step.rollback-required {
-    border-left: 3px solid var(--warn);
-  }
-
   noscript .warn {
     display: block;
     padding: 10px 14px;
@@ -256,6 +318,78 @@
     color: var(--fg);
   }
   a { color: var(--accent); }
+
+  /* Semantic pill tags (NEW / CHANGED / BREAKING / DEPRECATED / FIXED) */
+  strong.tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 7px;
+    border-radius: 4px;
+    vertical-align: 1px;
+    margin-right: 6px;
+    border: 1px solid;
+  }
+  strong.tag-add    { color: var(--ok);     background: rgba(63,185,80,0.10);  border-color: rgba(63,185,80,0.40); }
+  strong.tag-change { color: var(--accent); background: rgba(88,166,255,0.10); border-color: rgba(88,166,255,0.40); }
+  strong.tag-break  { color: var(--danger); background: rgba(248,81,73,0.12);  border-color: rgba(248,81,73,0.45); }
+  strong.tag-warn   { color: var(--warn);   background: rgba(210,153,34,0.10); border-color: rgba(210,153,34,0.40); }
+  strong.tag-fix    { color: var(--ok);     background: rgba(63,185,80,0.10);  border-color: rgba(63,185,80,0.40); }
+
+  /* Changelog (header revision log) */
+  .changelog-block {
+    margin: 18px 0 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .changelog-block summary {
+    cursor: pointer;
+    padding: 8px 14px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 600;
+    list-style: none;
+    user-select: none;
+  }
+  .changelog-block summary::-webkit-details-marker { display: none; }
+  .changelog-block summary::before {
+    content: "\25B8";
+    display: inline-block;
+    margin-right: 6px;
+    transition: transform 0.15s;
+  }
+  .changelog-block[open] summary::before { transform: rotate(90deg); }
+  .changelog-block summary:hover { color: var(--fg); }
+  table.changelog {
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+    border-top: 1px solid var(--line);
+  }
+  table.changelog td {
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.changelog tr:last-child td { border-bottom: none; }
+  table.changelog td:first-child {
+    white-space: nowrap;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    width: 1%;
+  }
+
   @media print {
     :root {
       --bg: #ffffff;
@@ -266,64 +400,104 @@
       --line: #d4d4d8;
     }
     body { background: white; color: black; }
-    .diagram, footer .next, code, pre.code, table, article.step, .header-table { background: white; }
-    article.step, section { break-inside: avoid; }
+    .diagram, footer .next, code, pre.code, table, .ac-list li, .header-table { background: white; }
+    .diagram-canvas { height: auto; overflow: visible; border: none; background: transparent; cursor: auto; }
+    .diagram-toolbar, .diagram-hint { display: none; }
+    section { break-inside: avoid; }
   }
 </style>
 </head>
 <body>
-<main>
-  <header class="doc">
-    <div class="meta">Implementation plan · {{DATE}}</div>
+<div class="page">
+  <aside class="toc-rail" aria-label="Table of contents">
+    <h4>Contents</h4>
+    <nav><ol id="toc-list"></ol></nav>
+  </aside>
+  <main>
+    <header>
+    <div class="meta">Engineering spec · {{DATE}}</div>
     <h1>{{TITLE}}</h1>
     <table class="header-table">
       <tr><td>Status</td><td>{{STATUS_HTML}}</td></tr>
       <tr><td>Date</td><td>{{DATE}}</td></tr>
-      <tr><td>Spec</td><td>{{SPEC_LINK_HTML}}</td></tr>
+      <tr><td>Brainstorming</td><td>{{BRAINSTORMING_LINK_HTML}}</td></tr>
     </table>
     <p class="goal">{{GOAL}}</p>
+    <details class="changelog-block" open>
+      <summary>Changelog</summary>
+      <table class="changelog"><tbody>
+{{CHANGELOG_ROWS}}
+      </tbody></table>
+    </details>
     <noscript><span class="warn">Diagrams require JavaScript (Mermaid loads from CDN). Open in a browser with internet to render.</span></noscript>
   </header>
 
-  <section id="strategy">
-    <h2>Strategy <a class="anchor" href="#strategy">#</a></h2>
-    {{STRATEGY}}
+  <section id="acceptance">
+    <h2>Acceptance criteria <a class="anchor" href="#acceptance">#</a></h2>
+    {{ACCEPTANCE_CRITERIA}}
   </section>
 
-  <section id="preflight">
-    <h2>Pre-flight <a class="anchor" href="#preflight">#</a></h2>
-    {{PREFLIGHT}}
+  <section id="scope">
+    <h2>Out of scope <a class="anchor" href="#scope">#</a></h2>
+    {{OUT_OF_SCOPE}}
   </section>
 
-  <section id="steps">
-    <h2>Steps <a class="anchor" href="#steps">#</a></h2>
-    {{STEPS_HTML}}
+  <section id="behavior">
+    <h2>Behavior <a class="anchor" href="#behavior">#</a></h2>
+    {{BEHAVIOR}}
   </section>
 
-  <section id="postflight">
-    <h2>Post-flight <a class="anchor" href="#postflight">#</a></h2>
-    {{POSTFLIGHT}}
+  <section id="api">
+    <h2>API contracts <a class="anchor" href="#api">#</a></h2>
+    {{API_CONTRACTS}}
   </section>
 
-  <section id="risks">
-    <h2>Risks during execution <a class="anchor" href="#risks">#</a></h2>
-    {{RISKS}}
+  <section id="data">
+    <h2>Data model <a class="anchor" href="#data">#</a></h2>
+    {{DATA_MODEL}}
   </section>
 
-  <section id="notes">
-    <h2>Notes <a class="anchor" href="#notes">#</a></h2>
-    {{NOTES}}
+  <section id="errors">
+    <h2>Error handling <a class="anchor" href="#errors">#</a></h2>
+    {{ERROR_HANDLING}}
+  </section>
+
+  <section id="security">
+    <h2>Security <a class="anchor" href="#security">#</a></h2>
+    {{SECURITY}}
+  </section>
+
+  <section id="observability">
+    <h2>Observability <a class="anchor" href="#observability">#</a></h2>
+    {{OBSERVABILITY}}
+  </section>
+
+  <section id="rollout">
+    <h2>Rollout <a class="anchor" href="#rollout">#</a></h2>
+    {{ROLLOUT}}
+  </section>
+
+  <section id="open">
+    <h2>Open questions <a class="anchor" href="#open">#</a></h2>
+    {{OPEN_QUESTIONS}}
+  </section>
+
+  <section id="impl">
+    <h2>Implementation notes <a class="anchor" href="#impl">#</a></h2>
+    {{IMPLEMENTATION_NOTES}}
   </section>
 
   <footer>
     <div>Reviewer: ____________________</div>
-    <div class="next">On approval: Markdown plan generated · then test-review</div>
+    <div class="next">On approval: Markdown spec generated</div>
   </footer>
-</main>
+  </main>
+</div>
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  import svgPanZoom from "https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/+esm";
   mermaid.initialize({
-    startOnLoad: true,
+    startOnLoad: false,
     theme: "dark",
     securityLevel: "strict",
     themeVariables: {
@@ -356,6 +530,104 @@
     sequence: { showSequenceNumbers: true, mirrorActors: false },
     er: { useMaxWidth: true }
   });
+
+  (async () => {
+    try { await mermaid.run(); } catch (e) { console.error("mermaid render failed", e); return; }
+    document.querySelectorAll(".diagram").forEach((diagram) => {
+      const svg = diagram.querySelector("svg");
+      if (!svg || svg.closest(".diagram-canvas")) return;
+      const canvas = document.createElement("div");
+      canvas.className = "diagram-canvas";
+      svg.parentNode.insertBefore(canvas, svg);
+      canvas.appendChild(svg);
+      svg.removeAttribute("style");
+      const pz = svgPanZoom(svg, {
+        zoomEnabled: true, panEnabled: true, controlIconsEnabled: false,
+        fit: true, center: true, minZoom: 0.2, maxZoom: 20, contain: false, dblClickZoomEnabled: true
+      });
+      const tb = document.createElement("div");
+      tb.className = "diagram-toolbar";
+      tb.innerHTML =
+        '<button data-act="in" title="Zoom in" aria-label="Zoom in">+</button>' +
+        '<button data-act="out" title="Zoom out" aria-label="Zoom out">−</button>' +
+        '<button data-act="fit" title="Fit" aria-label="Fit">⤢</button>' +
+        '<button data-act="reset" title="Reset" aria-label="Reset">⟲</button>';
+      tb.addEventListener("click", (e) => {
+        const act = e.target.closest("button")?.dataset.act;
+        if (act === "in") pz.zoomIn();
+        else if (act === "out") pz.zoomOut();
+        else if (act === "fit") { pz.resize(); pz.fit(); pz.center(); }
+        else if (act === "reset") pz.reset();
+      });
+      const hint = document.createElement("div");
+      hint.className = "diagram-hint";
+      hint.textContent = "drag · scroll to zoom";
+      canvas.appendChild(tb);
+      canvas.appendChild(hint);
+      if (typeof ResizeObserver !== "undefined") {
+        new ResizeObserver(() => { pz.resize(); pz.fit(); pz.center(); }).observe(canvas);
+      }
+    });
+
+    const tocList = document.getElementById("toc-list");
+    if (tocList) {
+      const sections = [...document.querySelectorAll("main section[id]")];
+      sections.forEach((s) => {
+        const h2 = s.querySelector("h2");
+        if (!h2) return;
+        const titleNode = h2.cloneNode(true);
+        titleNode.querySelectorAll(".anchor").forEach((n) => n.remove());
+        const text = titleNode.textContent.trim();
+        if (!text) return;
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = "#" + s.id;
+        a.textContent = text;
+        a.dataset.target = s.id;
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+      const links = [...tocList.querySelectorAll("a")];
+      let ticking = false;
+      const updateActive = () => {
+        ticking = false;
+        const targetY = window.innerHeight * 0.2;
+        let activeId = sections[0]?.id || null;
+        for (const s of sections) {
+          if (s.getBoundingClientRect().top <= targetY) activeId = s.id;
+        }
+        links.forEach((a) => a.classList.toggle("active", a.dataset.target === activeId));
+      };
+      window.addEventListener("scroll", () => {
+        if (!ticking) { requestAnimationFrame(updateActive); ticking = true; }
+      }, { passive: true });
+      updateActive();
+    }
+
+    const TAG_MAP = {
+      NEW: "add", ADD: "add", ADDED: "add",
+      CHANGED: "change", CHANGE: "change", UPDATE: "change", UPDATED: "change", MOVED: "change", RENAMED: "change",
+      BREAKING: "break",
+      DEPRECATED: "warn", DEPRECATE: "warn", REMOVED: "warn", REMOVE: "warn",
+      FIX: "fix", FIXED: "fix"
+    };
+    document.querySelectorAll("li").forEach((li) => {
+      let first = li.firstElementChild;
+      if (first && first.tagName === "P") first = first.firstElementChild;
+      if (!first || first.tagName !== "STRONG") return;
+      const m = first.textContent.trim().match(/^([A-Za-z]+):?$/);
+      if (!m) return;
+      const key = m[1].toUpperCase();
+      const cls = TAG_MAP[key];
+      if (!cls) return;
+      first.textContent = key;
+      first.classList.add("tag", "tag-" + cls);
+      const nxt = first.nextSibling;
+      if (nxt && nxt.nodeType === 3) {
+        nxt.textContent = nxt.textContent.replace(/^[\s:.]+/, " ");
+      }
+    });
+  })();
 </script>
 
 <!-- Inline comment system (server-backed). Select any text → click "💬 Comment" → leave a comment. Persists to <htmlpath>.comments.json via the review server. Requires http://localhost:7681 (see scripts/review-server.mjs). -->

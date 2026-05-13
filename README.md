@@ -27,7 +27,9 @@ Each link reads the prior artifact, asks narrow clarifying questions, runs a sel
 
 ## Install
 
-### Via the Claude Code marketplace (recommended)
+Install once per coding agent. The repo ships a manifest for each supported agent under `.<agent>-plugin/plugin.json`, all pointing at the same `skills/` folder.
+
+### Claude Code
 
 In a Claude Code session:
 
@@ -36,17 +38,38 @@ In a Claude Code session:
 /plugin install oyster@oyster-skills
 ```
 
-That's it — the chain is installed and ready. To update later, run `/plugin marketplace update oyster-skills`.
+Update later: `/plugin marketplace update oyster-skills`.
 
-### Or symlink locally (for development)
+### Cursor
 
-```bash
-git clone https://github.com/OysterD3/oyster-skills.git ~/Projects/oyster-skills
-cd ~/Projects/oyster-skills
-./install.sh
+In Cursor's Agent chat:
+
+```
+/add-plugin OysterD3/oyster-skills
 ```
 
-The script symlinks each skill into `~/.claude/skills/`. Re-running is safe — it skips existing symlinks and warns on conflicts. Useful if you want to edit the skills in-place and have your changes take effect immediately without re-installing the plugin.
+Or search **oyster** in Cursor's plugin marketplace. Reads `.cursor-plugin/plugin.json`.
+
+### Codex CLI
+
+Open the plugin browser:
+
+```
+/plugins
+```
+
+Search for **oyster** and select *Install Plugin*. Reads `.codex-plugin/plugin.json`.
+
+### Local development
+
+To edit the skills in-place and have changes take effect immediately, register this repo as a local marketplace. From your Claude Code session:
+
+```
+/plugin marketplace add /absolute/path/to/oyster-skills
+/plugin install oyster@oyster-skills
+```
+
+Cursor and Codex have analogous local-install flows in their plugin commands.
 
 ## How the HTML review system works
 
@@ -75,9 +98,8 @@ Diffs are never committed — that's always your call.
 
 ## Requirements
 
-- [Claude Code](https://docs.claude.com/claude-code) installed
-- Node ≥ 18 (for the review server)
-- macOS / Linux (the `install.sh` uses POSIX `ln -s`)
+- One of: [Claude Code](https://docs.claude.com/claude-code), [Cursor](https://cursor.com), or [Codex CLI](https://github.com/openai/codex)
+- Node ≥ 18 (for the inline-comment review server)
 
 ## License
 

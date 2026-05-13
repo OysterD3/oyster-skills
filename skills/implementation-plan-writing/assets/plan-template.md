@@ -6,6 +6,12 @@
 | **Date** | {{DATE}} |
 | **Spec** | {{SPEC_LINK}} |
 
+## Changelog
+
+| When | Note |
+|---|---|
+{{CHANGELOG_ROWS_MD}}
+
 ---
 
 ## Goal

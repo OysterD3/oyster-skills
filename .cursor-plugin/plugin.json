@@ -1,0 +1,22 @@
+{
+  "name": "oyster",
+  "displayName": "Oyster Skills",
+  "description": "Brainstorming → spec → impl plan → test review → implementation → post-implementation review. Each planning phase has a human review gate with inline-comment HTML preview.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Oyster Lee",
+    "email": "oysterd3@gmail.com"
+  },
+  "homepage": "https://github.com/OysterD3/oyster-skills",
+  "repository": "https://github.com/OysterD3/oyster-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "engineering",
+    "planning",
+    "spec",
+    "code-review",
+    "test-review"
+  ],
+  "skills": "./skills/"
+}

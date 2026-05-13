@@ -141,7 +141,7 @@ Output the report in chat as a ✓/⚠/✗ table per the pattern in earlier skil
 Slug rules:
 - Chained: reuse the impl plan's slug.
 - Audit: prefix with `audit-` plus the target name (`audit-sim-cards`, `audit-auth-module`).
-- Never overwrite. Append `-v2`, `-v3` on both files together.
+- **If a file with the same name already exists, treat it as a continuation** — read it, prepend a new changelog row (see [Changelog](#changelog)), and update in place on BOTH files together. Don't write `-v2`. If the existing file is unrelated work that genuinely collided, ask the user before clobbering.
 
 ### MD template (`assets/review-template.md`)
 
@@ -164,6 +164,7 @@ Standard markdown. Tables for coverage maps. Mermaid in fenced ` ```mermaid ` bl
 | `{{PERF_TESTS}}` | Performance tests section |
 | `{{GAPS_RISKS}}` | Ranked gaps |
 | `{{RECOMMENDATIONS}}` | Concrete test files to add |
+| `{{CHANGELOG_ROWS_MD}}` | One row per revision, newest at top — see [Changelog](#changelog) |
 
 ### HTML template (`assets/review-template.html`)
 
@@ -176,6 +177,7 @@ HTML-only placeholders:
 | `{{STATUS_HTML}}` | `<span class="status-draft">Draft</span>` or `<span class="status-approved">Approved</span>` |
 | `{{MODE_HTML}}` | `<span class="mode-chained">Chained</span>` or `<span class="mode-audit">Audit</span>` |
 | `{{SOURCE_LINK_HTML}}` | `<a href="..">file</a>` |
+| `{{CHANGELOG_ROWS}}` | One `<tr>` per revision, newest at top — see [Changelog](#changelog) |
 
 Coverage map status cells must use the right class for color coding:
 
@@ -198,6 +200,30 @@ Test inventory entries use:
 
 Test type classes: `test-type-unit`, `test-type-integration`, `test-type-e2e`, `test-type-security`, `test-type-perf`.
 
+## Changelog
+
+Both files include a changelog at the top — HTML in a collapsible `<details>` block, MD as a small markdown table. The changelog is how readers see *what changed since last review* and replaces `-v2` versioning entirely.
+
+**Initial write** — one row in each file.
+
+HTML (`{{CHANGELOG_ROWS}}`):
+```html
+<tr><td><time>YYYY-MM-DD HH:MM</time></td><td>Initial draft</td></tr>
+```
+
+MD (`{{CHANGELOG_ROWS_MD}}`):
+```markdown
+| 2026-05-13 14:32 | Initial draft |
+```
+
+**On every revision** — read the existing file, prepend a new row, write the updated file back.
+
+Rules:
+- Timestamp: local time, 24-hour, minute-precision, taken at the moment of the revision.
+- Note column: one short sentence — what changed *and* why (cite the comment / new info / user request).
+- Newest at top. Never delete older rows.
+- When the MD is written after HTML approval, copy ALL of the HTML's changelog rows into the MD's `## Changelog` table so the two files agree.
+
 ## Revision loop
 
 If user wants changes after the HTML review:
@@ -205,8 +231,8 @@ If user wants changes after the HTML review:
 1. Capture feedback in one batch.
 2. Update the relevant sections.
 3. Re-run self-review on changed sections.
-4. Write a new HTML at `-v2`, etc. Don't mutate the original.
-5. On final approval, write MD with the same version suffix.
+4. **Update the HTML in place** and prepend a new row to the changelog (see [Changelog](#changelog)). No `-v2`.
+5. On final approval, write/update the MD in place and copy the changelog rows across so both files agree.
 
 ## Review server lifecycle
 
@@ -273,7 +299,7 @@ Treat each as a revision request:
 2. Group by intent — *test additions* ("we also need a test for X"), *test challenges* ("this test mocks the DB — rewrite"), *recategorizations* (e.g. unit → integration), *coverage corrections* (status was wrong), *questions*, *proposed-but-unclear*.
 3. Apply edits to the working review. If a comment challenges a mock-policy verdict, re-run the relevant items of the coverage checklist.
 4. Re-run the self-review on the changed sections.
-5. Regenerate the HTML as `-v2`. Don't write the MD until the user re-approves.
+5. **Update the HTML in place** and prepend a changelog row summarizing what was revised (see [Changelog](#changelog)). Don't write/update the MD until the user re-approves the HTML.
 6. In your reply, list each comment with action taken (`✓ applied`, `→ answered inline`, `? clarification needed`) so the user can verify nothing was missed.
 
 ## Anti-patterns

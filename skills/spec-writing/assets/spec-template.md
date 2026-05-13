@@ -6,6 +6,12 @@
 | **Date** | {{DATE}} |
 | **Brainstorming** | {{BRAINSTORMING_LINK}} |
 
+## Changelog
+
+| When | Note |
+|---|---|
+{{CHANGELOG_ROWS_MD}}
+
 ---
 
 ## Goal

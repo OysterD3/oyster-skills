@@ -7,6 +7,12 @@
 | **Mode** | {{MODE}} |
 | **Source** | {{SOURCE_LINK}} |
 
+## Changelog
+
+| When | Note |
+|---|---|
+{{CHANGELOG_ROWS_MD}}
+
 ---
 
 ## Summary

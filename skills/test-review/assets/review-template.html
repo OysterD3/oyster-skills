@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{TITLE}} — Spec</title>
+<title>{{TITLE}} — Test review</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -16,6 +16,8 @@
     --warn: #d29922;
     --danger: #f85149;
     --ok: #3fb950;
+    --purple: #bc8cff;
+    --pink: #f778ba;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
@@ -25,12 +27,64 @@
     color: var(--fg);
     -webkit-font-smoothing: antialiased;
   }
-  main {
-    max-width: 860px;
+  main { min-width: 0; }
+  .page {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 900px);
+    gap: 48px;
+    max-width: 1232px;
     margin: 0 auto;
     padding: 56px 32px 96px;
   }
-  header { margin-bottom: 40px; }
+  @media (max-width: 1199px) {
+    .page { grid-template-columns: minmax(0, 900px); justify-content: center; gap: 0; }
+    .toc-rail { display: none !important; }
+  }
+  .toc-rail {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.4;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+  .toc-rail::-webkit-scrollbar { width: 6px; }
+  .toc-rail::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  .toc-rail h4 {
+    margin: 0 0 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+    padding-left: 12px;
+  }
+  .toc-rail nav ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .toc-rail nav li { margin: 0; }
+  .toc-rail nav a {
+    display: block;
+    padding: 5px 12px;
+    color: var(--muted);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    line-height: 1.4;
+  }
+  .toc-rail nav a:hover { color: var(--fg); background: var(--surface); }
+  .toc-rail nav a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(88,166,255,0.07);
+    font-weight: 500;
+  }
+  header.doc { margin-bottom: 40px; }
   .meta {
     font-size: 12px;
     color: var(--muted);
@@ -67,14 +121,19 @@
   }
   .status-draft { color: var(--warn); }
   .status-approved { color: var(--ok); }
-  .goal {
-    font-size: 16px;
-    margin: 0;
-    padding: 14px 18px;
-    background: var(--surface);
-    border-left: 3px solid var(--accent);
-    border-radius: 6px;
+  .mode-chained, .mode-audit {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
+  .mode-chained { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .mode-audit { background: rgba(188,140,255,0.15); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+
   section {
     margin-top: 40px;
     padding-top: 22px;
@@ -116,12 +175,13 @@
     font-family: var(--mono);
     font-size: 13px;
     background: var(--surface);
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-radius: 6px;
     border: 1px solid var(--line);
     color: var(--fg);
     overflow-x: auto;
     line-height: 1.5;
+    margin: 6px 0;
   }
   table {
     border-collapse: collapse;
@@ -147,13 +207,73 @@
     background: var(--surface-2);
   }
   tr:last-child td { border-bottom: none; }
+
+  /* Coverage status badges */
+  .status-ok, .status-warn, .status-gap {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .status-ok { color: var(--ok); }
+  .status-warn { color: var(--warn); }
+  .status-gap { color: var(--danger); }
+
+  /* Test entry cards */
+  article.test-entry {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 8px 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    grid-template-rows: auto auto;
+    gap: 6px 12px;
+    align-items: center;
+  }
+  article.test-entry .test-type {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    align-self: start;
+    margin-top: 2px;
+  }
+  article.test-entry .test-type-unit { background: rgba(63,185,113,0.15); color: var(--ok); border: 1px solid rgba(63,185,113,0.3); }
+  article.test-entry .test-type-integration { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  article.test-entry .test-type-e2e { background: rgba(188,140,255,0.15); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+  article.test-entry .test-type-security { background: rgba(248,81,73,0.15); color: var(--danger); border: 1px solid rgba(248,81,73,0.3); }
+  article.test-entry .test-type-perf { background: rgba(210,153,34,0.15); color: var(--warn); border: 1px solid rgba(210,153,34,0.3); }
+
+  article.test-entry .test-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--fg);
+  }
+  article.test-entry .test-file {
+    grid-column: 2;
+    font-size: 12px;
+  }
+  article.test-entry .test-intent {
+    grid-column: 1 / -1;
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Diagram blocks (optional mermaid usage) */
   .diagram {
+    position: relative;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 6px;
     padding: 18px;
     margin: 14px 0;
-    overflow-x: auto;
   }
   .diagram pre.mermaid {
     margin: 0;
@@ -161,34 +281,61 @@
     text-align: center;
     font-family: var(--mono);
   }
-  .diagram + .caption {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: -8px;
-    margin-bottom: 14px;
-    text-align: center;
-  }
-  .ac-list { counter-reset: ac; padding-left: 0; list-style: none; }
-  .ac-list li {
-    counter-increment: ac;
-    padding: 10px 12px 10px 44px;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    margin: 8px 0;
+  .diagram-canvas {
     position: relative;
+    height: 480px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: grab;
   }
-  .ac-list li::before {
-    content: "AC" counter(ac);
+  .diagram-canvas:active { cursor: grabbing; }
+  .diagram-canvas > svg { width: 100%; height: 100%; max-width: none; display: block; }
+  .diagram-toolbar {
     position: absolute;
-    left: 12px;
-    top: 10px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--accent);
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 2px;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.15s;
   }
+  .diagram-canvas:hover .diagram-toolbar { opacity: 1; }
+  .diagram-toolbar button {
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    width: 26px; height: 26px;
+    font: 600 13px var(--mono);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .diagram-toolbar button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--surface-2);
+  }
+  .diagram-hint {
+    position: absolute;
+    bottom: 4px;
+    left: 8px;
+    font: 10px var(--mono);
+    color: var(--muted);
+    pointer-events: none;
+    opacity: 0.5;
+    user-select: none;
+  }
+
+  /* Risk bullets */
+  ul.risks li { color: var(--warn); }
+  ul.risks li::marker { color: var(--warn); }
+  ul.gaps li { color: var(--danger); }
+  ul.gaps li::marker { color: var(--danger); }
+
   noscript .warn {
     display: block;
     padding: 10px 14px;
@@ -218,6 +365,78 @@
     color: var(--fg);
   }
   a { color: var(--accent); }
+
+  /* Semantic pill tags (NEW / CHANGED / BREAKING / DEPRECATED / FIXED) */
+  strong.tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 7px;
+    border-radius: 4px;
+    vertical-align: 1px;
+    margin-right: 6px;
+    border: 1px solid;
+  }
+  strong.tag-add    { color: var(--ok);     background: rgba(63,185,80,0.10);  border-color: rgba(63,185,80,0.40); }
+  strong.tag-change { color: var(--accent); background: rgba(88,166,255,0.10); border-color: rgba(88,166,255,0.40); }
+  strong.tag-break  { color: var(--danger); background: rgba(248,81,73,0.12);  border-color: rgba(248,81,73,0.45); }
+  strong.tag-warn   { color: var(--warn);   background: rgba(210,153,34,0.10); border-color: rgba(210,153,34,0.40); }
+  strong.tag-fix    { color: var(--ok);     background: rgba(63,185,80,0.10);  border-color: rgba(63,185,80,0.40); }
+
+  /* Changelog (header revision log) */
+  .changelog-block {
+    margin: 18px 0 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .changelog-block summary {
+    cursor: pointer;
+    padding: 8px 14px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 600;
+    list-style: none;
+    user-select: none;
+  }
+  .changelog-block summary::-webkit-details-marker { display: none; }
+  .changelog-block summary::before {
+    content: "\25B8";
+    display: inline-block;
+    margin-right: 6px;
+    transition: transform 0.15s;
+  }
+  .changelog-block[open] summary::before { transform: rotate(90deg); }
+  .changelog-block summary:hover { color: var(--fg); }
+  table.changelog {
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+    border-top: 1px solid var(--line);
+  }
+  table.changelog td {
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.changelog tr:last-child td { border-bottom: none; }
+  table.changelog td:first-child {
+    white-space: nowrap;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    width: 1%;
+  }
+
   @media print {
     :root {
       --bg: #ffffff;
@@ -228,89 +447,99 @@
       --line: #d4d4d8;
     }
     body { background: white; color: black; }
-    .diagram, footer .next, code, pre.code, table, .ac-list li, .header-table { background: white; }
-    section { break-inside: avoid; }
+    .diagram, footer .next, code, pre.code, table, article.test-entry, .header-table { background: white; }
+    .diagram-canvas { height: auto; overflow: visible; border: none; background: transparent; cursor: auto; }
+    .diagram-toolbar, .diagram-hint { display: none; }
+    section, article.test-entry { break-inside: avoid; }
   }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <div class="meta">Engineering spec · {{DATE}}</div>
+<div class="page">
+  <aside class="toc-rail" aria-label="Table of contents">
+    <h4>Contents</h4>
+    <nav><ol id="toc-list"></ol></nav>
+  </aside>
+  <main>
+    <header class="doc">
+    <div class="meta">Test review · {{DATE}}</div>
     <h1>{{TITLE}}</h1>
     <table class="header-table">
       <tr><td>Status</td><td>{{STATUS_HTML}}</td></tr>
+      <tr><td>Mode</td><td>{{MODE_HTML}}</td></tr>
       <tr><td>Date</td><td>{{DATE}}</td></tr>
-      <tr><td>Brainstorming</td><td>{{BRAINSTORMING_LINK_HTML}}</td></tr>
+      <tr><td>Source</td><td>{{SOURCE_LINK_HTML}}</td></tr>
     </table>
-    <p class="goal">{{GOAL}}</p>
+    <details class="changelog-block" open>
+      <summary>Changelog</summary>
+      <table class="changelog"><tbody>
+{{CHANGELOG_ROWS}}
+      </tbody></table>
+    </details>
     <noscript><span class="warn">Diagrams require JavaScript (Mermaid loads from CDN). Open in a browser with internet to render.</span></noscript>
   </header>
 
-  <section id="acceptance">
-    <h2>Acceptance criteria <a class="anchor" href="#acceptance">#</a></h2>
-    {{ACCEPTANCE_CRITERIA}}
+  <section id="summary">
+    <h2>Summary <a class="anchor" href="#summary">#</a></h2>
+    {{SUMMARY}}
   </section>
 
-  <section id="scope">
-    <h2>Out of scope <a class="anchor" href="#scope">#</a></h2>
-    {{OUT_OF_SCOPE}}
+  <section id="coverage">
+    <h2>Coverage map <a class="anchor" href="#coverage">#</a></h2>
+    {{COVERAGE_MAP}}
   </section>
 
-  <section id="behavior">
-    <h2>Behavior <a class="anchor" href="#behavior">#</a></h2>
-    {{BEHAVIOR}}
+  <section id="per-step">
+    <h2>Per-step test plan <a class="anchor" href="#per-step">#</a></h2>
+    {{PER_STEP_TESTS}}
   </section>
 
-  <section id="api">
-    <h2>API contracts <a class="anchor" href="#api">#</a></h2>
-    {{API_CONTRACTS}}
+  <section id="inventory">
+    <h2>Test inventory <a class="anchor" href="#inventory">#</a></h2>
+    {{TEST_INVENTORY}}
   </section>
 
-  <section id="data">
-    <h2>Data model <a class="anchor" href="#data">#</a></h2>
-    {{DATA_MODEL}}
+  <section id="mocks">
+    <h2>Mock policy audit <a class="anchor" href="#mocks">#</a></h2>
+    {{MOCK_AUDIT}}
   </section>
 
-  <section id="errors">
-    <h2>Error handling <a class="anchor" href="#errors">#</a></h2>
-    {{ERROR_HANDLING}}
+  <section id="determinism">
+    <h2>Determinism review <a class="anchor" href="#determinism">#</a></h2>
+    {{DETERMINISM}}
   </section>
 
   <section id="security">
-    <h2>Security <a class="anchor" href="#security">#</a></h2>
-    {{SECURITY}}
+    <h2>Security tests <a class="anchor" href="#security">#</a></h2>
+    {{SECURITY_TESTS}}
   </section>
 
-  <section id="observability">
-    <h2>Observability <a class="anchor" href="#observability">#</a></h2>
-    {{OBSERVABILITY}}
+  <section id="perf">
+    <h2>Performance tests <a class="anchor" href="#perf">#</a></h2>
+    {{PERF_TESTS}}
   </section>
 
-  <section id="rollout">
-    <h2>Rollout <a class="anchor" href="#rollout">#</a></h2>
-    {{ROLLOUT}}
+  <section id="gaps">
+    <h2>Gaps &amp; risks <a class="anchor" href="#gaps">#</a></h2>
+    {{GAPS_RISKS}}
   </section>
 
-  <section id="open">
-    <h2>Open questions <a class="anchor" href="#open">#</a></h2>
-    {{OPEN_QUESTIONS}}
-  </section>
-
-  <section id="impl">
-    <h2>Implementation notes <a class="anchor" href="#impl">#</a></h2>
-    {{IMPLEMENTATION_NOTES}}
+  <section id="recs">
+    <h2>Recommendations <a class="anchor" href="#recs">#</a></h2>
+    {{RECOMMENDATIONS}}
   </section>
 
   <footer>
     <div>Reviewer: ____________________</div>
-    <div class="next">On approval: Markdown spec generated</div>
+    <div class="next">On approval: Markdown review generated · then implementation</div>
   </footer>
-</main>
+  </main>
+</div>
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  import svgPanZoom from "https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/+esm";
   mermaid.initialize({
-    startOnLoad: true,
+    startOnLoad: false,
     theme: "dark",
     securityLevel: "strict",
     themeVariables: {
@@ -325,24 +554,111 @@
       noteBkgColor: "#1c2128",
       noteTextColor: "#e6edf3",
       noteBorderColor: "#30363d",
-      actorBkg: "#1c2128",
-      actorBorder: "#58a6ff",
-      actorTextColor: "#e6edf3",
-      signalColor: "#7d8590",
-      signalTextColor: "#e6edf3",
-      labelBoxBkgColor: "#1c2128",
-      labelBoxBorderColor: "#30363d",
-      labelTextColor: "#e6edf3",
-      activationBkgColor: "#21262d",
-      activationBorderColor: "#58a6ff",
-      sequenceNumberColor: "#0d1117",
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
       fontSize: "13px"
     },
     flowchart: { curve: "basis", htmlLabels: true },
-    sequence: { showSequenceNumbers: true, mirrorActors: false },
+    sequence: { showSequenceNumbers: true },
     er: { useMaxWidth: true }
   });
+
+  (async () => {
+    try { await mermaid.run(); } catch (e) { console.error("mermaid render failed", e); return; }
+    document.querySelectorAll(".diagram").forEach((diagram) => {
+      const svg = diagram.querySelector("svg");
+      if (!svg || svg.closest(".diagram-canvas")) return;
+      const canvas = document.createElement("div");
+      canvas.className = "diagram-canvas";
+      svg.parentNode.insertBefore(canvas, svg);
+      canvas.appendChild(svg);
+      svg.removeAttribute("style");
+      const pz = svgPanZoom(svg, {
+        zoomEnabled: true, panEnabled: true, controlIconsEnabled: false,
+        fit: true, center: true, minZoom: 0.2, maxZoom: 20, contain: false, dblClickZoomEnabled: true
+      });
+      const tb = document.createElement("div");
+      tb.className = "diagram-toolbar";
+      tb.innerHTML =
+        '<button data-act="in" title="Zoom in" aria-label="Zoom in">+</button>' +
+        '<button data-act="out" title="Zoom out" aria-label="Zoom out">−</button>' +
+        '<button data-act="fit" title="Fit" aria-label="Fit">⤢</button>' +
+        '<button data-act="reset" title="Reset" aria-label="Reset">⟲</button>';
+      tb.addEventListener("click", (e) => {
+        const act = e.target.closest("button")?.dataset.act;
+        if (act === "in") pz.zoomIn();
+        else if (act === "out") pz.zoomOut();
+        else if (act === "fit") { pz.resize(); pz.fit(); pz.center(); }
+        else if (act === "reset") pz.reset();
+      });
+      const hint = document.createElement("div");
+      hint.className = "diagram-hint";
+      hint.textContent = "drag · scroll to zoom";
+      canvas.appendChild(tb);
+      canvas.appendChild(hint);
+      if (typeof ResizeObserver !== "undefined") {
+        new ResizeObserver(() => { pz.resize(); pz.fit(); pz.center(); }).observe(canvas);
+      }
+    });
+
+    const tocList = document.getElementById("toc-list");
+    if (tocList) {
+      const sections = [...document.querySelectorAll("main section[id]")];
+      sections.forEach((s) => {
+        const h2 = s.querySelector("h2");
+        if (!h2) return;
+        const titleNode = h2.cloneNode(true);
+        titleNode.querySelectorAll(".anchor").forEach((n) => n.remove());
+        const text = titleNode.textContent.trim();
+        if (!text) return;
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = "#" + s.id;
+        a.textContent = text;
+        a.dataset.target = s.id;
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+      const links = [...tocList.querySelectorAll("a")];
+      let ticking = false;
+      const updateActive = () => {
+        ticking = false;
+        const targetY = window.innerHeight * 0.2;
+        let activeId = sections[0]?.id || null;
+        for (const s of sections) {
+          if (s.getBoundingClientRect().top <= targetY) activeId = s.id;
+        }
+        links.forEach((a) => a.classList.toggle("active", a.dataset.target === activeId));
+      };
+      window.addEventListener("scroll", () => {
+        if (!ticking) { requestAnimationFrame(updateActive); ticking = true; }
+      }, { passive: true });
+      updateActive();
+    }
+
+    const TAG_MAP = {
+      NEW: "add", ADD: "add", ADDED: "add",
+      CHANGED: "change", CHANGE: "change", UPDATE: "change", UPDATED: "change", MOVED: "change", RENAMED: "change",
+      BREAKING: "break",
+      DEPRECATED: "warn", DEPRECATE: "warn", REMOVED: "warn", REMOVE: "warn",
+      FIX: "fix", FIXED: "fix"
+    };
+    document.querySelectorAll("li").forEach((li) => {
+      let first = li.firstElementChild;
+      if (first && first.tagName === "P") first = first.firstElementChild;
+      if (!first || first.tagName !== "STRONG") return;
+      const m = first.textContent.trim().match(/^([A-Za-z]+):?$/);
+      if (!m) return;
+      const key = m[1].toUpperCase();
+      const cls = TAG_MAP[key];
+      if (!cls) return;
+      first.textContent = key;
+      first.classList.add("tag", "tag-" + cls);
+      const nxt = first.nextSibling;
+      if (nxt && nxt.nodeType === 3) {
+        nxt.textContent = nxt.textContent.replace(/^[\s:.]+/, " ");
+      }
+    });
+  })();
 </script>
 
 <!-- Inline comment system (server-backed). Select any text → click "💬 Comment" → leave a comment. Persists to <htmlpath>.comments.json via the review server. Requires http://localhost:7681 (see scripts/review-server.mjs). -->

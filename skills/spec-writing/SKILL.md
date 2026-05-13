@@ -104,7 +104,7 @@ Both files share the slug. Date-prefixed for natural sort.
 Slug rules:
 - 2–5 kebab-case words from the goal (e.g. `telegram-forward-dedup`)
 - If continuing from a brainstorming file, reuse its slug for traceability
-- Never overwrite an existing file. On collision append `-v2`, `-v3`, etc., on **both** files together
+- **If a file with the same name already exists, treat it as a continuation.** Read it, prepend a new changelog row (see [Changelog](#changelog)), and update in place. Don't write `-v2`. If the existing file is unrelated work that genuinely collided, ask the user before clobbering.
 
 ### MD template (`assets/spec-template.md`)
 
@@ -128,17 +128,19 @@ Read it, replace placeholders, write the result. Plain markdown. Mermaid blocks 
 | `{{ROLLOUT}}` | Feature flag, migration order, rollback plan | |
 | `{{OPEN_QUESTIONS}}` | Anything unresolved + deferred residual risks | Empty list means "none" |
 | `{{IMPLEMENTATION_NOTES}}` | File-by-file change summary | Brief; this isn't a checklist for the implementer to follow blindly |
+| `{{CHANGELOG_ROWS_MD}}` | One row per revision, newest at top | See [Changelog](#changelog) |
 
 ### HTML template (`assets/spec-template.html`)
 
 Dark mode, Mermaid 11 from CDN, same visual language as brainstorming. Section placeholders match the MD template (`{{GOAL}}`, `{{ACCEPTANCE_CRITERIA}}`, etc.) but expect **HTML content**, not markdown.
 
-Two HTML-only metadata placeholders:
+Three HTML-only metadata placeholders:
 
 | Placeholder | Format | Example |
 |---|---|---|
 | `{{STATUS_HTML}}` | `<span class="status-draft">Draft</span>` for draft, `<span class="status-approved">Approved</span>` after sign-off | colors render automatically |
 | `{{BRAINSTORMING_LINK_HTML}}` | `<a href="../brainstorming/<file>">filename</a>` if linked, `<em>none — standalone spec</em>` if not | relative path from `docs/specs/` to `docs/brainstorming/` |
+| `{{CHANGELOG_ROWS}}` | One `<tr>` per revision, newest at top | See [Changelog](#changelog) |
 
 Content rules:
 
@@ -154,6 +156,35 @@ Content rules:
 
 - API contract code samples: use `<pre class="code">` (styled monospace block) instead of plain `<pre>`.
 
+## Changelog
+
+Both files include a changelog at the top — HTML in a collapsible `<details>` block, MD as a small markdown table. The changelog is how readers see *what changed since last review* and replaces `-v2` versioning entirely.
+
+**Initial write** — one row in each file.
+
+HTML (`{{CHANGELOG_ROWS}}`):
+```html
+<tr><td><time>YYYY-MM-DD HH:MM</time></td><td>Initial draft</td></tr>
+```
+
+MD (`{{CHANGELOG_ROWS_MD}}`):
+```markdown
+| 2026-05-13 14:32 | Initial draft |
+```
+
+**On every revision** — read the existing file, prepend a new row, write the updated file back:
+
+```html
+<tr><td><time>2026-05-13 15:10</time></td><td>Return 422 on /forward when already enabled (per comment on API contracts)</td></tr>
+<tr><td><time>2026-05-13 14:32</time></td><td>Initial draft</td></tr>
+```
+
+Rules:
+- Timestamp: local time, 24-hour, minute-precision, taken at the moment of the revision.
+- Note column: one short sentence — what changed *and* why (cite the comment / new info / user request).
+- Newest at top. Never delete older rows.
+- When the MD is written after HTML approval, copy ALL of the HTML's changelog rows into the MD's `## Changelog` table so the two files agree.
+
 ## Revision loop
 
 If the user wants changes after reviewing the HTML:
@@ -161,8 +192,8 @@ If the user wants changes after reviewing the HTML:
 1. Capture the feedback (one batch is fine; not a full interview).
 2. Update the relevant spec sections.
 3. Re-run the self-review pass on the changed sections.
-4. Write a new HTML at `-v2` (then `-v3`, …). Do not mutate the original.
-5. When the user approves the final HTML, write the MD with the **same** version suffix as the approved HTML.
+4. **Update the HTML in place** — read the existing file, regenerate with the revised content, prepend a new row to the changelog (see [Changelog](#changelog)). No `-v2`.
+5. When the user approves the final HTML, write the MD in place (also in place if it already exists), and copy the HTML's changelog rows into the MD's `## Changelog` table so both files agree.
 
 ## Review server lifecycle
 
@@ -229,7 +260,7 @@ Treat each as a revision request:
 2. Group by intent — *edits* (clear textual change), *questions* (need a one-line answer back), *proposed-but-unclear* (need a clarifying question).
 3. Apply edits. Answer questions inline. Ask ONE clarifying question only if a "proposed-but-unclear" item truly needs disambiguation.
 4. Re-run the self-review on the changed sections.
-5. Regenerate the HTML as `-v2`. Don't write the MD until the user re-approves the new HTML.
+5. **Update the HTML in place** and prepend a changelog row summarizing the revision (see [Changelog](#changelog)). Don't write/update the MD until the user re-approves the HTML.
 6. In your reply, list each comment with the action taken (`✓ applied`, `→ answered inline`, `? clarification needed`) so the user can verify nothing was missed.
 
 ## Anti-patterns
