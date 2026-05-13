@@ -18,7 +18,7 @@ installed=0
 skipped=0
 conflicts=0
 
-for src in "$REPO_DIR/skills"/*/; do
+for src in "$REPO_DIR/plugins/engineering-chain/skills"/*/; do
   name="$(basename "$src")"
   target="$SKILLS_DIR/$name"
   src_clean="${src%/}"

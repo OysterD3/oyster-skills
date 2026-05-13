@@ -1,0 +1,21 @@
+{
+  "name": "engineering-chain",
+  "version": "0.1.0",
+  "description": "Brainstorming → spec → impl plan → test review → implementation → post-implementation review. Each phase has a human review gate. Includes roast-me adversarial review and a local review server for inline-comment feedback on HTML previews.",
+  "author": {
+    "name": "Oyster Lee",
+    "email": "oysterd3@gmail.com"
+  },
+  "homepage": "https://github.com/OysterD3/oyster-skills",
+  "repository": "https://github.com/OysterD3/oyster-skills",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "skills",
+    "engineering",
+    "planning",
+    "spec",
+    "code-review",
+    "test-review"
+  ]
+}

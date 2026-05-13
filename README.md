@@ -27,13 +27,26 @@ Each link reads the prior artifact, asks narrow clarifying questions, runs a sel
 
 ## Install
 
+### Via the Claude Code marketplace (recommended)
+
+In a Claude Code session:
+
+```
+/plugin marketplace add OysterD3/oyster-skills
+/plugin install engineering-chain@oyster-skills
+```
+
+That's it — the chain is installed and ready. To update later, run `/plugin marketplace update oyster-skills`.
+
+### Or symlink locally (for development)
+
 ```bash
 git clone https://github.com/OysterD3/oyster-skills.git ~/Projects/oyster-skills
 cd ~/Projects/oyster-skills
 ./install.sh
 ```
 
-The script symlinks each skill into `~/.claude/skills/`. Re-running is safe — it skips existing symlinks and warns on conflicts.
+The script symlinks each skill into `~/.claude/skills/`. Re-running is safe — it skips existing symlinks and warns on conflicts. Useful if you want to edit the skills in-place and have your changes take effect immediately without re-installing the plugin.
 
 ## How the HTML review system works
 
