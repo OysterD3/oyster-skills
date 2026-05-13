@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}} — Brainstorming review</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #1c2128;
+    --fg: #e6edf3;
+    --muted: #7d8590;
+    --line: #30363d;
+    --accent: #58a6ff;
+    --warn: #d29922;
+    --danger: #f85149;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body {
+    font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+  }
+  header { margin-bottom: 40px; }
+  .meta {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 30px;
+    line-height: 1.25;
+    margin: 0 0 14px;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+  .goal {
+    font-size: 16px;
+    margin: 0;
+    padding: 14px 18px;
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+  }
+  section {
+    margin-top: 40px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    scroll-margin-top: 24px;
+  }
+  h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .anchor {
+    color: var(--muted);
+    opacity: 0;
+    text-decoration: none;
+    font-size: 13px;
+    transition: opacity 0.15s;
+  }
+  h2:hover .anchor { opacity: 1; }
+  ul, ol { margin: 0; padding-left: 22px; }
+  li { margin: 5px 0; }
+  p { margin: 8px 0; }
+  code, .file {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--surface);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    color: var(--fg);
+  }
+  .risks li { color: var(--warn); }
+  .risks li::marker { color: var(--warn); }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    background: var(--surface);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--surface-2);
+  }
+  tr:last-child td { border-bottom: none; }
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 18px;
+    margin: 14px 0;
+    overflow-x: auto;
+  }
+  .diagram pre.mermaid {
+    margin: 0;
+    background: transparent;
+    text-align: center;
+    font-family: var(--mono);
+  }
+  .diagram + .caption {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: -8px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  noscript .warn {
+    display: block;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-left: 3px solid var(--warn);
+    color: var(--warn);
+    margin: 12px 0;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  footer .next {
+    background: var(--surface);
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--fg);
+  }
+  a { color: var(--accent); }
+  @media print {
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-2: #f5f5f4;
+      --fg: #1a1a1a;
+      --muted: #555;
+      --line: #d4d4d8;
+    }
+    body { background: white; color: black; }
+    .diagram, footer .next, code, table { background: white; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="meta">Brainstorming review · {{DATE}}</div>
+    <h1>{{TITLE}}</h1>
+    <p class="goal">{{GOAL}}</p>
+    <noscript><span class="warn">Diagrams require JavaScript (Mermaid loads from CDN). Open in a browser with internet to render.</span></noscript>
+  </header>
+
+  <section id="flow">
+    <h2>Flow <a class="anchor" href="#flow">#</a></h2>
+    {{FLOW}}
+  </section>
+
+  <section id="files">
+    <h2>Files to touch <a class="anchor" href="#files">#</a></h2>
+    {{FILES}}
+  </section>
+
+  <section id="data">
+    <h2>Data &amp; contract changes <a class="anchor" href="#data">#</a></h2>
+    {{DATA_CHANGES}}
+  </section>
+
+  <section id="order">
+    <h2>Execution order <a class="anchor" href="#order">#</a></h2>
+    {{EXECUTION_ORDER}}
+  </section>
+
+  <section id="scope">
+    <h2>Out of scope <a class="anchor" href="#scope">#</a></h2>
+    {{OUT_OF_SCOPE}}
+  </section>
+
+  <section id="risks">
+    <h2>Open risks <a class="anchor" href="#risks">#</a></h2>
+    <ul class="risks">
+      {{OPEN_RISKS}}
+    </ul>
+  </section>
+
+  <section id="security">
+    <h2>Security pass <a class="anchor" href="#security">#</a></h2>
+    {{SECURITY_SUMMARY}}
+  </section>
+
+  <footer>
+    <div>Reviewer: ____________________</div>
+    <div class="next">Next: spec writing</div>
+  </footer>
+</main>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "dark",
+    securityLevel: "strict",
+    themeVariables: {
+      darkMode: true,
+      background: "#161b22",
+      primaryColor: "#1c2128",
+      primaryTextColor: "#e6edf3",
+      primaryBorderColor: "#30363d",
+      lineColor: "#7d8590",
+      secondaryColor: "#21262d",
+      tertiaryColor: "#0d1117",
+      noteBkgColor: "#1c2128",
+      noteTextColor: "#e6edf3",
+      noteBorderColor: "#30363d",
+      actorBkg: "#1c2128",
+      actorBorder: "#58a6ff",
+      actorTextColor: "#e6edf3",
+      signalColor: "#7d8590",
+      signalTextColor: "#e6edf3",
+      labelBoxBkgColor: "#1c2128",
+      labelBoxBorderColor: "#30363d",
+      labelTextColor: "#e6edf3",
+      activationBkgColor: "#21262d",
+      activationBorderColor: "#58a6ff",
+      sequenceNumberColor: "#0d1117",
+      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+      fontSize: "13px"
+    },
+    flowchart: { curve: "basis", htmlLabels: true },
+    sequence: { showSequenceNumbers: true, mirrorActors: false },
+    er: { useMaxWidth: true }
+  });
+</script>
+
+<!-- Inline comment system (server-backed). Select any text → click "💬 Comment" → leave a comment. Persists to <htmlpath>.comments.json via the review server. Requires http://localhost:7681 (see scripts/review-server.mjs). -->
+<style>
+  .cm-select-btn {
+    position: absolute; z-index: 999;
+    background: var(--accent); color: var(--bg);
+    border: none; padding: 6px 14px; border-radius: 18px;
+    font: 600 12px/1 inherit; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    display: none;
+  }
+  .cm-select-btn.visible { display: block; }
+  .cm-add {
+    position: absolute; right: -32px; top: 4px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: var(--bg);
+    border: none; cursor: pointer; padding: 0;
+    font-size: 16px; font-weight: 700; line-height: 1;
+    opacity: 0; transition: opacity 0.15s, transform 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cm-commentable { position: relative; }
+  .cm-commentable:hover > .cm-add { opacity: 0.55; }
+  .cm-add:hover { opacity: 1 !important; transform: scale(1.1); }
+  mark.cm-hl {
+    background: rgba(88,166,255,0.18); color: inherit;
+    padding: 1px 0;
+    border-bottom: 1px dashed rgba(88,166,255,0.55);
+    cursor: pointer;
+  }
+  mark.cm-hl:hover { background: rgba(88,166,255,0.32); }
+  .cm-popup {
+    position: absolute; z-index: 1000;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px; width: 340px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .cm-popup .cm-quote {
+    font: 11px/1.4 var(--mono); color: var(--muted);
+    border-left: 2px solid var(--accent); padding: 4px 8px;
+    margin-bottom: 8px; max-height: 60px; overflow: hidden;
+    background: var(--bg); border-radius: 0 4px 4px 0;
+  }
+  .cm-popup textarea {
+    width: 100%; min-height: 80px; box-sizing: border-box;
+    background: var(--bg); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 8px; font: inherit; resize: vertical;
+  }
+  .cm-popup .cm-row { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
+  .cm-popup button {
+    padding: 6px 12px; border: 1px solid var(--line);
+    background: var(--surface-2); color: var(--fg);
+    border-radius: 4px; cursor: pointer; font: inherit; font-size: 13px;
+  }
+  .cm-popup button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+  .cm-panel { position: fixed; right: 24px; bottom: 24px; z-index: 100; font-family: inherit; }
+  .cm-toggle {
+    background: var(--accent); color: var(--bg);
+    border: none; padding: 10px 16px; border-radius: 24px;
+    font-weight: 600; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    font-size: 13px; font-family: inherit;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cm-toggle .cm-badge {
+    background: var(--bg); color: var(--accent);
+    border-radius: 12px; padding: 1px 8px;
+    font: 700 11px var(--mono);
+  }
+  .cm-list {
+    display: none; position: absolute; right: 0; bottom: 56px;
+    width: 420px; max-height: 60vh; overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 8px; padding: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+  .cm-panel.open .cm-list { display: block; }
+  .cm-list h3 {
+    margin: 0 0 12px; font: 600 11px inherit;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+  }
+  .cm-status { font: 10px var(--mono); color: var(--muted); margin-bottom: 12px; }
+  .cm-status.ok::before { content: "● "; color: var(--ok, #3fb950); }
+  .cm-status.err::before { content: "● "; color: var(--danger, #f85149); }
+  .cm-item {
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 10px 12px; margin-bottom: 8px; background: var(--surface-2);
+  }
+  .cm-item .cm-q {
+    font: 11px/1.4 var(--mono); color: var(--muted);
+    border-left: 2px solid var(--accent); padding-left: 8px;
+    margin-bottom: 6px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cm-item .cm-b { font-size: 13px; color: var(--fg); line-height: 1.5; }
+  .cm-item .cm-actions { margin-top: 6px; display: flex; gap: 10px; font-size: 11px; }
+  .cm-item button {
+    background: none; border: none; color: var(--accent);
+    cursor: pointer; padding: 0; font: 11px inherit;
+  }
+  .cm-item button:hover { text-decoration: underline; }
+  .cm-clear {
+    width: 100%; margin-top: 10px; padding: 8px;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+    font: 12px inherit;
+  }
+  .cm-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0; }
+  .cm-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    background: var(--warn, #d29922); color: #0d1117;
+    padding: 10px 18px; font: 600 13px inherit; text-align: center;
+    display: none;
+  }
+  .cm-banner.visible { display: block; }
+  .cm-banner code { background: rgba(0,0,0,0.2); color: inherit; padding: 1px 6px; border-radius: 3px; font-family: var(--mono); }
+  @media print { .cm-panel, .cm-add, .cm-popup, .cm-select-btn, .cm-banner { display: none !important; } mark.cm-hl { background: transparent; border: none; } }
+</style>
+
+<div class="cm-banner" id="cmBanner">
+  Review server not running. Start it with <code>node ~/.claude/skills/brainstorming/scripts/review-server.mjs</code> from your project root, then reload.
+</div>
+<button class="cm-select-btn" id="cmSelectBtn">💬 Comment</button>
+<div class="cm-panel" id="cmPanel">
+  <div class="cm-list">
+    <h3>Comments</h3>
+    <div class="cm-status" id="cmStatus">connecting…</div>
+    <div id="cmItems"></div>
+    <button class="cm-clear" id="cmClear">Clear all comments</button>
+  </div>
+  <button class="cm-toggle" id="cmToggle">Comments <span class="cm-badge" id="cmBadge">0</span></button>
+</div>
+
+<script>
+(async function () {
+  const FILE = location.pathname.replace(/^\//, '');
+  const API = `/api/comments?file=${encodeURIComponent(FILE)}`;
+  let comments = [];
+  let serverOk = false;
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+  function setStatus(msg, cls) {
+    const s = document.getElementById('cmStatus');
+    s.textContent = msg; s.className = 'cm-status ' + (cls || '');
+  }
+
+  try {
+    const r = await fetch('/api/health', { cache: 'no-store' });
+    serverOk = r.ok;
+  } catch { serverOk = false; }
+
+  if (!serverOk) {
+    document.getElementById('cmBanner').classList.add('visible');
+    document.body.style.paddingTop = '44px';
+    setStatus('server not running — comments disabled', 'err');
+    // Still render the panel so user knows what's up
+    document.getElementById('cmToggle').onclick = () => document.getElementById('cmPanel').classList.toggle('open');
+    return;
+  }
+  setStatus('connected · ' + FILE, 'ok');
+
+  try {
+    const r = await fetch(API, { cache: 'no-store' });
+    const data = await r.json();
+    comments = Array.isArray(data.comments) ? data.comments : [];
+  } catch (e) { console.error('load failed', e); }
+
+  async function persist() {
+    try {
+      await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ file: FILE, comments }) });
+      render();
+    } catch (e) { setStatus('save failed: ' + e.message, 'err'); }
+  }
+
+  function findSectionTitle(node) {
+    let n = node && node.nodeType === 3 ? node.parentNode : node;
+    while (n && n !== document.body) {
+      if (n.tagName === 'SECTION') {
+        const h2 = n.querySelector('h2');
+        return h2 ? h2.textContent.replace(/#/g, '').trim() : (n.id || 'Section');
+      }
+      if (n.classList?.contains('step')) {
+        const t = n.querySelector('.step-header h3, h3');
+        return t ? 'Step: ' + t.textContent.trim() : 'Step';
+      }
+      if (n.classList?.contains('test-entry')) {
+        const t = n.querySelector('.test-name');
+        return t ? 'Test: ' + t.textContent.trim() : 'Test';
+      }
+      n = n.parentNode;
+    }
+    return 'Top';
+  }
+
+  function sectionElement(sectionName) {
+    return Array.from(document.querySelectorAll('section, article.step, article.test-entry')).find(s => {
+      const h2 = s.querySelector('h2');
+      const h3 = s.querySelector('.step-header h3, h3, .test-name');
+      return (h2 && h2.textContent.replace(/#/g,'').trim() === sectionName)
+          || (sectionName?.startsWith('Step: ') && h3 && sectionName === 'Step: ' + h3.textContent.trim())
+          || (sectionName?.startsWith('Test: ') && h3 && sectionName === 'Test: ' + h3.textContent.trim());
+    }) || document.body;
+  }
+
+  function isCommentableNode(n) {
+    return !n.parentElement?.closest('.cm-panel, .cm-popup, .cm-banner, .cm-select-btn, mark.cm-hl, script, style');
+  }
+
+  function computeOccurrence(sectionEl, quote, startContainer, startOffset) {
+    let cumulative = '';
+    const walker = document.createTreeWalker(sectionEl, NodeFilter.SHOW_TEXT, { acceptNode: n => isCommentableNode(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node === startContainer) { cumulative += node.textContent.substring(0, startOffset); break; }
+      cumulative += node.textContent;
+    }
+    let count = 0, i = 0;
+    while ((i = cumulative.indexOf(quote, i)) !== -1) { count++; i += quote.length; }
+    return count;
+  }
+
+  function openPopup(rect, quote, section, occurrence) {
+    document.querySelectorAll('.cm-popup').forEach(p => p.remove());
+    const p = document.createElement('div');
+    p.className = 'cm-popup';
+    p.innerHTML = `<div class="cm-quote">${esc(quote.slice(0, 200))}</div><textarea placeholder="Leave a comment..."></textarea><div class="cm-row"><button data-cancel>Cancel</button><button class="primary" data-save>Save</button></div>`;
+    p.style.top = (window.scrollY + rect.bottom + 8) + 'px';
+    p.style.left = Math.min(window.scrollX + rect.left, window.scrollX + window.innerWidth - 360) + 'px';
+    document.body.appendChild(p);
+    const ta = p.querySelector('textarea'); ta.focus();
+    p.querySelector('[data-cancel]').onclick = () => p.remove();
+    p.querySelector('[data-save]').onclick = async () => {
+      const body = ta.value.trim(); if (!body) return;
+      comments.push({ id: 'cm' + Date.now() + Math.random().toString(36).slice(2,6), section, quote: quote.slice(0, 240), occurrence: occurrence | 0, body, ts: new Date().toISOString() });
+      p.remove();
+      await persist();
+    };
+    setTimeout(() => {
+      document.addEventListener('click', function h(e) {
+        if (!p.contains(e.target) && !e.target.closest('.cm-add, .cm-select-btn')) { p.remove(); document.removeEventListener('click', h); }
+      });
+    }, 0);
+  }
+
+  function onSelection() {
+    const sel = window.getSelection();
+    const btn = document.getElementById('cmSelectBtn');
+    if (!sel.rangeCount || sel.isCollapsed) { btn.classList.remove('visible'); return; }
+    const text = sel.toString().trim();
+    if (text.length < 2) { btn.classList.remove('visible'); return; }
+    if (sel.anchorNode && (sel.anchorNode.parentElement?.closest('.cm-panel, .cm-popup, .cm-banner, .cm-select-btn'))) { btn.classList.remove('visible'); return; }
+    const range = sel.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    btn.style.top = (window.scrollY + rect.bottom + 6) + 'px';
+    btn.style.left = (window.scrollX + rect.left) + 'px';
+    btn.classList.add('visible');
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const quote = sel.toString().trim();
+      const section = findSectionTitle(sel.anchorNode);
+      const sectionEl = sectionElement(section);
+      const occurrence = computeOccurrence(sectionEl, quote, range.startContainer, range.startOffset);
+      btn.classList.remove('visible');
+      openPopup(rect, quote, section, occurrence);
+      sel.removeAllRanges();
+    };
+  }
+
+  function openPopupForElement(el) {
+    const heading = el.querySelector('h3, .test-name, .step-header h3');
+    const quote = heading ? heading.textContent.trim() : el.textContent.replace(/\s+/g,' ').trim().slice(0,140);
+    const section = findSectionTitle(el);
+    const rect = el.getBoundingClientRect();
+    openPopup(rect, quote, section, 0);
+  }
+
+  function attachAddBtns() {
+    document.querySelectorAll('.diagram, article.step, article.test-entry').forEach(el => {
+      if (el.querySelector(':scope > .cm-add')) return;
+      el.classList.add('cm-commentable');
+      const b = document.createElement('button');
+      b.className = 'cm-add'; b.textContent = '+'; b.title = 'Add comment';
+      b.onclick = e => { e.stopPropagation(); openPopupForElement(el); };
+      el.appendChild(b);
+    });
+  }
+
+  function highlightComments() {
+    document.querySelectorAll('mark.cm-hl').forEach(m => {
+      const parent = m.parentNode;
+      while (m.firstChild) parent.insertBefore(m.firstChild, m);
+      parent.removeChild(m);
+      parent.normalize();
+    });
+    comments.forEach(c => {
+      const root = sectionElement(c.section);
+      const target = c.occurrence | 0;
+      let seen = 0;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: n => (!n.textContent.trim() || !isCommentableNode(n)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+      });
+      let node;
+      outer: while ((node = walker.nextNode())) {
+        let pos = 0;
+        while (true) {
+          const idx = node.textContent.indexOf(c.quote, pos);
+          if (idx === -1) break;
+          if (seen === target) {
+            const after = node.splitText(idx);
+            after.splitText(c.quote.length);
+            const mk = document.createElement('mark');
+            mk.className = 'cm-hl'; mk.dataset.cmId = c.id; mk.title = c.body;
+            mk.onclick = e => { e.stopPropagation(); document.getElementById('cmPanel').classList.add('open'); };
+            node.parentNode.replaceChild(mk, after);
+            mk.appendChild(document.createTextNode(c.quote));
+            break outer;
+          }
+          seen++;
+          pos = idx + c.quote.length;
+        }
+      }
+    });
+  }
+
+  function renderPanel() {
+    const list = document.getElementById('cmItems');
+    document.getElementById('cmBadge').textContent = comments.length;
+    if (!comments.length) { list.innerHTML = '<div class="cm-empty">No comments yet. Select any text and click "💬 Comment".</div>'; return; }
+    list.innerHTML = comments.map(c => `<div class="cm-item"><div class="cm-q">${esc(c.section)} — ${esc(c.quote.slice(0, 80))}</div><div class="cm-b">${esc(c.body)}</div><div class="cm-actions"><button data-del="${c.id}">delete</button></div></div>`).join('');
+    list.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      comments = comments.filter(c => c.id !== b.dataset.del);
+      await persist();
+    });
+  }
+
+  function render() { attachAddBtns(); highlightComments(); renderPanel(); }
+
+  document.addEventListener('mouseup', () => setTimeout(onSelection, 10));
+  document.addEventListener('keyup', (e) => { if (e.shiftKey || e.key === 'Shift') setTimeout(onSelection, 10); });
+  document.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.cm-select-btn')) document.getElementById('cmSelectBtn').classList.remove('visible');
+  });
+
+  document.getElementById('cmToggle').onclick = () => document.getElementById('cmPanel').classList.toggle('open');
+  document.getElementById('cmClear').onclick = async () => {
+    if (!confirm('Delete all comments on this page?')) return;
+    comments = [];
+    await persist();
+  };
+
+  render();
+  // Re-render once Mermaid finishes inserting SVGs. One-shot observer; falls back to 5s timeout.
+  const mObs = new MutationObserver(() => {
+    if (document.querySelector('.diagram svg')) { render(); mObs.disconnect(); }
+  });
+  mObs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(() => mObs.disconnect(), 5000);
+})();
+</script>
+</body>
+</html>
