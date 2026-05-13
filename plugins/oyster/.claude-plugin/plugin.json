@@ -1,5 +1,5 @@
 {
-  "name": "engineering-chain",
+  "name": "oyster",
   "version": "0.1.0",
   "description": "Brainstorming → spec → impl plan → test review → implementation → post-implementation review. Each phase has a human review gate. Includes roast-me adversarial review and a local review server for inline-comment feedback on HTML previews.",
   "author": {

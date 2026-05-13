@@ -33,7 +33,7 @@ In a Claude Code session:
 
 ```
 /plugin marketplace add OysterD3/oyster-skills
-/plugin install engineering-chain@oyster-skills
+/plugin install oyster@oyster-skills
 ```
 
 That's it — the chain is installed and ready. To update later, run `/plugin marketplace update oyster-skills`.
