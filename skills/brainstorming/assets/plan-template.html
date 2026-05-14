@@ -167,6 +167,8 @@
     background: var(--surface-2);
   }
   tr:last-child td { border-bottom: none; }
+  table.approaches tr.picked td { background: rgba(63,185,80,0.08); }
+  table.approaches tr.picked td:first-child { box-shadow: inset 3px 0 0 #3fb950; font-weight: 600; }
   .diagram {
     position: relative;
     background: var(--surface);
@@ -377,6 +379,11 @@
   <section id="context">
     <h2>Context <a class="anchor" href="#context">#</a></h2>
     {{CONTEXT}}
+  </section>
+
+  <section id="approaches">
+    <h2>Approaches considered <a class="anchor" href="#approaches">#</a></h2>
+    {{APPROACHES_CONSIDERED}}
   </section>
 
   <section id="approach">

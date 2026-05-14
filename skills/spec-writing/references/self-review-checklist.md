@@ -18,17 +18,18 @@ Brainstorming is the source of truth for the **approach** — what to do and why
 |---|---|---|
 | 1 | Goal | Spec **Goal** matches brainstorming **Goal** semantically. Tightened wording is OK; new scope is not. |
 | 2 | Context preserved | The "why now" framing from brainstorming **Context** is visible somewhere in the spec (Goal preamble or Implementation notes opening). Not lost. |
-| 3 | Approach honored | Spec **Behavior** reflects the brainstorming **Approach**. If brainstorming included a diagram, the spec's diagram is a refinement, not a contradiction. |
-| 4 | Decisions honored — picks | Every brainstorming **Decisions** row's *Picked* option is reflected in the spec wherever the decision applies (contracts, data model, error handling, rollout, security). No decision silently flipped. |
-| 5 | Decisions honored — why | The *Why* column from brainstorming is preserved as inline rationale wherever the decision lands in the spec. A reviewer reading the spec alone should still see the reasoning. |
-| 6 | Rejected options not silently revived | The spec does not implement a brainstorming-**Rejected** option without explicitly flagging the change in chat for the user to confirm. |
-| 7 | Tradeoffs — OUT | Brainstorming OUT items appear in spec **Out of scope**. Items moved into scope are flagged explicitly. |
-| 8 | Tradeoffs — ACCEPT | Brainstorming ACCEPT items appear in spec **Implementation notes** as documented compromises, with the brainstorming "why" preserved. |
-| 9 | Open questions — resolved | Questions the spec resolves (via code reading or clarifying questions) appear as concrete behavior/contracts/error handling. |
-| 10 | Open questions — carried | Questions not resolved appear in spec **Open questions** with residual-risk note. None silently dropped. |
-| 11 | Security decisions | Every row of the brainstorming **Security pass** table maps to a concrete, testable spec **Security** requirement. |
-| 12 | Security deferred | Anything marked "deferred" in the security pass appears in **Open questions** with residual-risk note. |
-| 13 | No new scope | Spec does not introduce features or behaviors that weren't in brainstorming. (New files/types/codes are EXPECTED — brainstorming intentionally omits them. The check is for new *behavior*.) Any new behavior is listed in chat for the user to confirm before render. |
+| 3 | Approach selection preserved | Brainstorming **Approaches considered** — the picked option, its winning reason, and the rejected alternatives — appears as a one-paragraph "approach selection" note in spec **Implementation notes**. Don't drop the rejected options; a reviewer needs to see that alternatives were weighed. |
+| 4 | Approach honored | Spec **Behavior** reflects the brainstorming **Approach**. If brainstorming included a diagram, the spec's diagram is a refinement, not a contradiction. |
+| 5 | Decisions honored — picks | Every brainstorming **Decisions** row's *Picked* option is reflected in the spec wherever the decision applies (contracts, data model, error handling, rollout, security). No decision silently flipped. |
+| 6 | Decisions honored — why | The *Why* column from brainstorming is preserved as inline rationale wherever the decision lands in the spec. A reviewer reading the spec alone should still see the reasoning. |
+| 7 | Rejected options not silently revived | The spec does not implement a brainstorming-**Rejected** option without explicitly flagging the change in chat for the user to confirm. |
+| 8 | Tradeoffs — OUT | Brainstorming OUT items appear in spec **Out of scope**. Items moved into scope are flagged explicitly. |
+| 9 | Tradeoffs — ACCEPT | Brainstorming ACCEPT items appear in spec **Implementation notes** as documented compromises, with the brainstorming "why" preserved. |
+| 10 | Open questions — resolved | Questions the spec resolves (via code reading or clarifying questions) appear as concrete behavior/contracts/error handling. |
+| 11 | Open questions — carried | Questions not resolved appear in spec **Open questions** with residual-risk note. None silently dropped. |
+| 12 | Security decisions | Every row of the brainstorming **Security pass** table maps to a concrete, testable spec **Security** requirement. |
+| 13 | Security deferred | Anything marked "deferred" in the security pass appears in **Open questions** with residual-risk note. |
+| 14 | No new scope | Spec does not introduce features or behaviors that weren't in brainstorming. (New files/types/codes are EXPECTED — brainstorming intentionally omits them. The check is for new *behavior*.) Any new behavior is listed in chat for the user to confirm before render. |
 
 ## Pass 2 — Internal consistency (spec ↔ spec)
 
@@ -59,6 +60,7 @@ Output in chat. Keep it tight.
 |---|---|---|
 | Goal | ✓ | |
 | Context preserved | ✓ | |
+| Approach selection preserved | ✓ | 3 options weighed, push-based picked |
 | Approach honored | ✓ | |
 | Decisions — picks | ✓ | 4/4 |
 | Decisions — why | ⚠ | "advisory lock" why missing rationale inline at Error handling |

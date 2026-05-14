@@ -21,7 +21,7 @@ The spec is the engineering contract. After this is signed off, implementation s
 Drive this with TodoWrite — one todo per item.
 
 - [ ] **Locate brainstorming input.** Look in `<cwd>/docs/brainstorming/` for the latest HTML. Confirm with user: "Using `<filename>` as the source. Right one?" If none exists, see [No brainstorming artifact](#no-brainstorming-artifact).
-- [ ] **Parse brainstorming.** Extract: Goal, Context, Approach (and any diagram), Decisions (Decision/Picked/Rejected/Why rows), Tradeoffs & out-of-scope, Open questions, Security pass decisions. Brainstorming is **approach-only** — it does NOT include file paths, concrete types, or status codes. Deriving those is *this* skill's job.
+- [ ] **Parse brainstorming.** Extract: Goal, Context, Approaches considered (the 2–3 options + which was picked + why), Approach (and any diagram), Decisions (Decision/Picked/Rejected/Why rows), Tradeoffs & out-of-scope, Open questions, Security pass decisions. Brainstorming is **approach-only** — it does NOT include file paths, concrete types, or status codes. Deriving those is *this* skill's job.
 - [ ] **Read the relevant code.** This is where you ground the approach in reality — open the modules implied by the Approach: existing types, function signatures, error shapes, similar features already shipped. The list of files to touch and the concrete contract shape are produced *here*, not inherited from brainstorming.
 - [ ] **Draft the spec internally.** Map brainstorming → spec sections per the [Mapping](#brainstorming--spec-mapping) below. Identify gaps that need narrow clarifying questions.
 - [ ] **Ask narrow clarifying questions** for legitimate spec-level gaps. ONE at a time. See [Question scope](#question-scope). If there are none, skip this step.
@@ -75,6 +75,7 @@ Brainstorming gives you the **approach** (and the reasoning behind it). The spec
 |---|---|
 | Goal | **Goal** (verbatim or tightened) |
 | Context | Folds into **Goal** preamble or **Implementation notes** opening — don't lose the "why now" framing |
+| Approaches considered | Folds into **Implementation notes** as a one-paragraph "approach selection" note: which option won and why, with rejected options named so a reviewer can see the alternatives were weighed. Don't re-litigate the choice — it's signed off. |
 | Approach (prose + optional diagram) | **Behavior** — refine the diagram with concrete endpoints, error names, state labels |
 | Decisions (Decision/Picked/Rejected/Why) | The *Picked* option drives **API contracts**, **Data model**, **Error handling**, **Rollout**, or **Security** depending on what the decision is about. The *Why* should remain visible — preserve it inline as a short rationale note where the decision lands. Don't silently drop a rejected option without trace. |
 | Tradeoffs &amp; out of scope | OUT items → spec **Out of scope** (verbatim or near). ACCEPT items → **Implementation notes** as documented compromises, with the brainstorming "why" preserved. |

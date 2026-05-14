@@ -30,11 +30,12 @@ Drive this with TodoWrite — one todo per item. Mark each complete as you go.
 - [ ] **Research external context if libraries/APIs are involved.** Use `mcp__context7__resolve-library-id` + `mcp__context7__query-docs` for library docs, or WebFetch for specific URLs. Skip if pure internal logic.
 - [ ] **Summarize findings (chat only).** 3–6 bullets: what exists, what's missing, what surprised you, conflicts with the user's framing. Surface the riskiest unknown — that's where the interview starts.
 - [ ] **Sketch mockup directions (UI only).** If the change introduces new visual surface (screen, page, modal, prominent component), propose 2–4 named layout directions with ASCII previews in a single `AskUserQuestion`. The pick frames the rest of the interview *and* becomes a decision row. See [UI mockup sampling](#ui-mockup-sampling). Skip for pure backend/schema/infra/refactor/copy work.
-- [ ] **Interview loop.** Batch independent questions, serialize dependent ones (see operating rule #2). Continue until the plan answers: *what's the context, what's the approach, what are the load-bearing decisions and why each was picked, what compromises are accepted, what's out of scope, what's still unresolved.* See [Question patterns](#question-patterns) below.
+- [ ] **Propose 2–3 distinct approaches and recommend one.** Before any detailed interviewing, name 2–3 structurally different ways to solve this (not stylistic variants). For each: short name, one-line gist, the tradeoff (what it's good at vs. what it costs). Lead with a recommendation and the *why* (matches existing patterns, lower risk, simpler ops, better fit for constraint X, etc.) — do not present them as a neutral menu. Use ONE `AskUserQuestion` with the recommendation as option 1 labeled "(Recommended)". The pick frames every later question. See [Proposing approaches](#proposing-approaches). *If the change is UI-heavy and the mockup pick already determined the system-design approach, record that pick as the chosen approach and skip — don't ask twice.*
+- [ ] **Interview loop.** *Inside* the chosen approach. Batch independent questions, serialize dependent ones (see operating rule #2). Continue until the plan answers: *what's the context, how does the chosen approach behave at runtime, what are the load-bearing decisions and why each was picked, what compromises are accepted, what's out of scope, what's still unresolved.* See [Question patterns](#question-patterns) below.
 - [ ] **Probe every decision for "why".** As decisions surface during the interview, log each one with `picked / rejected / why`. If a "why" is "user said so" or "gut feel", that's a flag to probe — ask for the underlying reason (perf, simplicity, lock-in concern, team familiarity, deadline pressure, etc.). A teammate reviewing the HTML wants the reason, not the verdict.
-- [ ] **Challenge the initial approach at least once** if a credible better path exists. Cite the specific weakness. If the user holds firm after your reasoning, accept and record their reason in the "why" column — that's exactly the kind of context a reviewer wants.
+- [ ] **Challenge details within the chosen approach** if a credible weakness surfaces during the interview (perf, security, simpler internal mechanism, etc.). The big-fork challenge already happened at proposal time; this is for finer-grained issues that only emerge once details land. If the user holds firm after your reasoning, accept and record their reason in the "why" column — that's exactly the kind of context a reviewer wants.
 - [ ] **Security pass.** Read [references/security-checklist.md](references/security-checklist.md) and walk the relevant items with the user. Mandatory — do not skip even when the change "feels" non-security. Output is one-line *Area · Decision* pairs; **no file paths or code references**.
-- [ ] **Synthesize the approach in chat.** Format: *Goal · Context · Approach · Decisions (Decision/Picked/Rejected/Why) · Tradeoffs · Open questions · Security*. Keep iterating with the user until they signal agreement. Talk in surfaces, not files.
+- [ ] **Synthesize the approach in chat.** Format: *Goal · Context · Approaches considered (the 2–3 you proposed + which was picked + why) · Approach (chosen one in detail) · Decisions (Decision/Picked/Rejected/Why) · Tradeoffs · Open questions · Security*. Keep iterating with the user until they signal agreement. Talk in surfaces, not files.
 - [ ] **Verify "why" completeness.** Before offering sign-off, check every Decisions row has a non-empty *Why* (and that "why" is reviewable — i.e., a teammate could agree or push back on it). If any row is thin, loop back to the interview for that one decision.
 - [ ] **Offer the optional roast.** Ask: "Want me to roast this plan before sign-off? An adversarial pass over the whole plan, or just focus on one area (security / ops cost / simpler alternative)? Or skip." Three options surfaced; one-question turn. If they pick a focused angle, pass it to `roast-me` as scope. Surface its verdict, fold any worthwhile concerns into a brief revision pass. If they skip, move on. Skipping is fine — this is opt-in.
 - [ ] **Explicit sign-off in chat.** Ask: "Ready for me to write the review doc, or anything to revise first?" Wait for a clear yes.
@@ -67,6 +68,51 @@ When the user is conflating two features.
 ### Probe a thin "why"
 When the picked option is clear but the reason isn't.
 > "You picked the lock approach over the unique constraint. Is the reason: (a) it composes with future multi-row work in the same critical section, (b) the team is more comfortable debugging lock contention than catching specific error codes, or (c) something else? I want to put the actual reason in the decisions table so a reviewer knows what to push back on if they disagree."
+
+## Proposing approaches
+
+This is the biggest fork in the brainstorm. Surface alternatives *before* drilling into details — otherwise the rest of the interview shoots at an approach that was never weighed against anything.
+
+### Principles
+
+1. **Distinct, not stylistic.** Approaches must differ in a *structural* way — sync vs async, monolith change vs new service, push vs pull, polling vs webhook, denormalized vs computed, single migration vs phased rollout. "With retries vs without retries" is a Decision row, not an approach. If you can't honestly find 2 structurally distinct options, surface that to the user: *"I only see one credible approach here — X — because <reason>. Want me to explore further, or proceed?"* Don't manufacture a fake alternative to fill the slot.
+2. **Recommend with conviction.** "Here are options, what do you think?" wastes the user's turn. Lead with a recommendation and the *why*. The user is free to overrule; you're free to push back once if they pick something the research suggests is worse.
+3. **Name the tradeoff for every option.** Each approach has a cost. State it — that's what makes the choice reviewable later.
+4. **Internal-research-first.** Use the codebase research from the previous step. If the codebase already has a pattern that fits, that's usually the recommendation; the alternative is "introduce a new pattern because <reason>".
+
+### How
+
+Use ONE `AskUserQuestion` call with `multiSelect: false`:
+
+- `header`: "Approach"
+- 2–3 options. **Option 1 is the recommendation** — its `label` ends with `(Recommended)` and its `description` leads with *why* you recommend it, then names the tradeoff.
+- Other options: `label` is the approach name, `description` is the gist + the tradeoff.
+
+Example:
+
+```
+Approach
+├─ Push-based forward (Recommended)
+│   Reuses the existing webhook + retry-queue pattern; lowest new surface area.
+│   Tradeoff: per-message ops cost vs. lower latency.
+├─ Pull-based polling
+│   Worker polls source every N seconds and batches forwards.
+│   Tradeoff: simpler ops vs. multi-minute latency.
+└─ Hybrid (push with poll-recovery)
+   Push for live messages, poll to backfill on push-receiver downtime.
+   Tradeoff: most resilient vs. double the moving parts.
+```
+
+After the pick: restate the choice and the user's stated reason in chat (one sentence each). This becomes the **Approaches considered** section in the HTML — all 2–3 options, the picked one marked with the reason it won, the rejected ones marked with the reason they didn't.
+
+### Anti-patterns
+
+| Don't | Do |
+|---|---|
+| Present 3 variants of the same approach ("with cache / without cache / with cache+TTL") | Find a *structural* alternative. Cache configuration is a Decision row, not an approach. |
+| Be neutral ("which do you prefer?") | Recommend. Be wrong sometimes; that's fine. A wrong-but-reasoned recommendation produces a better interview than a non-committal menu. |
+| Hide the tradeoff to make the recommendation look obvious | Name the cost of the recommendation explicitly. A teammate reviewing the HTML needs to see why a credible alternative was rejected. |
+| Skip this step because "the user already said what they want" | If the user proposed one approach and you found a credibly better one during research, this is the moment to surface it. Their stated approach becomes one of the options. |
 
 ## UI mockup sampling
 
@@ -224,7 +270,8 @@ The HTML is **approach-only**: no file paths, no function names, no concrete typ
 | `{{DATE}}` | Today's date | `YYYY-MM-DD` |
 | `{{GOAL}}` | One-sentence goal the user confirmed | Plain text |
 | `{{CONTEXT}}` | Why this matters *now* — the trigger, the pain, the constraint | 2–4 short `<li>` bullets or up to 2 short `<p>` sentences. No history dumps. |
-| `{{APPROACH}}` | The approach in one paragraph: how the design behaves, in surfaces and roles. Optionally followed by ONE diagram if behavior is genuinely non-obvious. | `<p>…</p>` followed optionally by one `<div class="diagram"><pre class="mermaid">…</pre></div>`. See [Diagrams](#diagrams). Skip the diagram if a sentence is clearer. |
+| `{{APPROACHES_CONSIDERED}}` | The 2–3 structurally distinct approaches you proposed + which was picked + why | `<table class="approaches">` with columns *Approach*, *Gist*, *Tradeoff*, *Status*. The picked row gets `class="picked"` and `Status` = `✓ Picked — <one-line reason>`. Rejected rows get `Status` = `Rejected — <one-line reason>`. If only one credible approach existed, include a single row marked Picked and add a `<p class="caption">No credible alternative — <reason explored>.</p>` below the table. |
+| `{{APPROACH}}` | The *chosen* approach in one paragraph: how it behaves, in surfaces and roles. Optionally followed by ONE diagram if behavior is genuinely non-obvious. | `<p>…</p>` followed optionally by one `<div class="diagram"><pre class="mermaid">…</pre></div>`. See [Diagrams](#diagrams). Skip the diagram if a sentence is clearer. Do NOT re-explain the rejected alternatives here — that's the previous section's job. |
 | `{{DECISIONS}}` | The **Why-A-not-B** table — every load-bearing fork the design closed on | `<table>` with columns *Decision*, *Picked*, *Rejected*, *Why*. Every row's *Why* must be non-empty and reviewable (a teammate could agree or push back on it). 2–6 rows typical; if you have more than 8, you're probably listing minor choices — fold them in. |
 | `{{TRADEOFFS}}` | Compromises we accept + things explicitly out of scope, in one list | `<ul>` — each `<li>` names what's given up *and why we're OK with it now*. Prefix with `<strong>OUT:</strong>` for out-of-scope items, `<strong>ACCEPT:</strong>` for accepted compromises. |
 | `{{OPEN_QUESTIONS}}` | Things still unresolved that a teammate should weigh in on | One `<li>` per question — already wrapped in `<ul class="risks">` by the template. End each with the question shape: *"…?"* |
