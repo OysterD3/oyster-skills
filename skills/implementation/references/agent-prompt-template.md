@@ -12,10 +12,19 @@ Replace every `{{PLACEHOLDER}}` with the actual content from the impl plan + tes
 You are executing one step of an approved implementation plan. The plan was written and approved by a human; your job is to make exactly the changes this step requires, run the verification, and report back. Do not improvise, expand scope, or commit anything.
 
 # Context
-- Repo root: {{REPO_ROOT}}
-- Branch you started on: {{BRANCH}}
-- You are working in an isolated git worktree at: {{WORKTREE_PATH}} (this is your cwd)
+
+- Repo root (main worktree): {{REPO_ROOT}}
+- Your isolated git worktree: {{WORKTREE_PATH}}
+- Branch checked out in your worktree: {{BRANCH}}
 - Project type: {{PROJECT_TYPE}}  (e.g., NestJS + Drizzle + pnpm, or React + Vite + pnpm)
+
+**You are NOT in the main repo.** Your VERY FIRST action MUST be:
+
+```bash
+cd {{WORKTREE_PATH}}
+```
+
+After that, every bash command, every file edit, every git command MUST run inside `{{WORKTREE_PATH}}`. Do not modify or read files outside this directory (use `Read` on absolute paths under `{{WORKTREE_PATH}}` if you need to look around). If you find yourself wanting to operate outside this directory, STOP and report a NOTE — that's a planning bug.
 
 # Step {{STEP_NUMBER}}: {{STEP_TITLE}}
 
@@ -90,8 +99,8 @@ Begin now.
 | Placeholder | Where to get it |
 |---|---|
 | `{{REPO_ROOT}}` | Absolute path to the user's repo root (the cwd of the orchestrator's conversation) |
-| `{{BRANCH}}` | Current git branch the user is on |
-| `{{WORKTREE_PATH}}` | Returned by the `Agent` tool when using `isolation: "worktree"` — but the agent's cwd is already this, so this can just be "your current working directory" |
+| `{{BRANCH}}` | Branch checked out in the agent's worktree — equals `impl/<plan>/step-<N>-<slug>` (set by `worktree.sh setup`) |
+| `{{WORKTREE_PATH}}` | Stdout of `worktree.sh setup <plan> <step-num> <step-slug>` — an absolute path under `<repo>/.worktrees/<plan>/step-<N>-<slug>` |
 | `{{PROJECT_TYPE}}` | Read from the project's package.json + framework cues. Helps the agent reach for the right test command, linter, etc. |
 | `{{STEP_NUMBER}}` | From the impl plan |
 | `{{STEP_TITLE}}` | From the impl plan |
@@ -102,57 +111,16 @@ Begin now.
 | `{{STEP_TESTS_FROM_REVIEW}}` | The test review's per-step entries for this step, formatted as: `<test name>` → `<file path>` → `<intent>`. Include the assertion intent so the agent writes meaningful assertions. |
 | `{{STEP_VERIFICATION_COMMAND}}` | Impl plan's `Verification` field — verbatim |
 
-## Worktree state before dispatch
+## Worktree lifecycle
 
-CRITICAL for parallel waves: each parallel worktree must be forked from the **current state of the main worktree's working branch**, which includes all changes from all prior waves (already staged in main).
+The orchestrator never hand-rolls `git worktree` commands — every step goes through `scripts/worktree.sh` (shipped with this skill). See [SKILL.md → Worktree management](../SKILL.md#worktree-management) for the full subcommand table.
 
-If the agent's worktree forks from a clean commit, it won't see the changes from prior waves that are still staged in main but not committed. Recommended approach: create throwaway WIP commits per wave, then reset to keep changes staged at hand-off.
+In short:
 
-### Concrete recipe
+1. `worktree.sh init <plan>` once after pre-flight passes — creates the consolidated worktree at `<repo>/.worktrees/<plan>/main` (branch `impl/<plan>/main`), saves `BASE_REF`, ensures `.worktrees/` is in `.gitignore`.
+2. `worktree.sh setup <plan> <num> <slug>` per step — forks a step worktree from the consolidated tip, prints its path (use as `{{WORKTREE_PATH}}`).
+3. `worktree.sh apply <plan> <num> <slug>` + `worktree.sh cleanup <plan> <num> <slug>` per successful step — applies the step's diff into the consolidated worktree (commits it as `step <N>: <slug>`) and removes the step worktree.
+4. `worktree.sh cleanup-steps <plan>` then `worktree.sh finalize <plan>` at hand-off — sweeps any leftover step worktrees, then resets the consolidated `--soft` to `BASE_REF` so every step's commit collapses back to a single staged diff.
+5. `worktree.sh teardown <plan>` — optional, run after the user has merged the consolidated work. Removes the consolidated worktree, every `impl/<plan>/*` branch, and the `.worktrees/<plan>/` directory.
 
-Run these commands from the orchestrator's `Bash` tool. `BASE_REF` is captured once at the very start of implementation, before wave 0.
-
-**At skill start (before wave 0):**
-```bash
-BASE_REF=$(git rev-parse HEAD)
-echo "$BASE_REF" > /tmp/claude-impl-base-ref
-```
-
-**Before dispatching each wave N (where N ≥ 1):**
-```bash
-# Commit the staged changes from wave N-1 so the new worktrees inherit them
-git diff --cached --quiet || git commit -m "WIP: wave $((N-1)) — will be reset at hand-off"
-```
-
-(If `git diff --cached --quiet` exits 0, there's nothing staged — skip the commit. Wave 0 always skips this.)
-
-**When dispatching each agent in the wave:** use `isolation: "worktree"` on the `Agent` call. The harness forks the worktree from the current branch tip, so it includes all prior WIP commits.
-
-**After each agent returns successfully:**
-```bash
-git -C "$AGENT_WORKTREE" diff HEAD > /tmp/wave-${N}-step-${M}.patch
-git apply --index /tmp/wave-${N}-step-${M}.patch
-rm /tmp/wave-${N}-step-${M}.patch
-```
-
-`$AGENT_WORKTREE` is the path returned by the `Agent` tool when `isolation: "worktree"` is used and the agent made changes.
-
-**At skill hand-off (after all waves succeed):**
-```bash
-BASE_REF=$(cat /tmp/claude-impl-base-ref)
-git reset --soft "$BASE_REF"
-rm /tmp/claude-impl-base-ref
-```
-
-This collapses every WIP commit back to staged-only state. The user sees: clean `git log` (back to `BASE_REF`) and a `git diff --staged` containing all the work from every wave.
-
-**On failure / abort:**
-```bash
-BASE_REF=$(cat /tmp/claude-impl-base-ref)
-git reset --soft "$BASE_REF"
-rm /tmp/claude-impl-base-ref
-```
-
-Same recipe — collapses the WIP commits whether the run succeeded or failed, leaving partial progress staged for the user to review.
-
-Tell the user once, at the start of implementation: "I'll create temporary `WIP: wave N` commits during execution and collapse them back to staged changes at hand-off. If you see them mid-run in `git log`, that's normal."
+The user's main checkout is never touched. The deliverable is the consolidated worktree at `.worktrees/<plan>/main` with one staged diff ready to commit.
