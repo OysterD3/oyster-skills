@@ -175,6 +175,7 @@
     overflow-x: auto;
     line-height: 1.5;
   }
+  pre.code code, pre.code code.hljs, pre code.hljs { background: transparent; padding: 0; border: none; font: inherit; color: inherit; }
   table {
     border-collapse: collapse;
     width: 100%;
@@ -406,6 +407,25 @@
     section { break-inside: avoid; }
   }
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github-dark.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/common.min.js"></script>
+<script defer>
+window.addEventListener('DOMContentLoaded', function () {
+  if (typeof hljs === 'undefined') return;
+  document.querySelectorAll('pre.code').forEach(function (pre) {
+    if (pre.querySelector('code')) return;
+    var code = document.createElement('code');
+    while (pre.firstChild) code.appendChild(pre.firstChild);
+    var lang = pre.dataset.lang;
+    if (lang) code.className = 'language-' + lang;
+    pre.appendChild(code);
+  });
+  document.querySelectorAll('pre code').forEach(function (el) {
+    if (el.closest('.diagram')) return;
+    try { hljs.highlightElement(el); } catch (e) { console.warn('hljs', e); }
+  });
+});
+</script>
 </head>
 <body>
 <div class="page">

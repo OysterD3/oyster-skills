@@ -158,7 +158,7 @@ Content rules:
   </pre></div>
   ```
 
-- API contract code samples: use `<pre class="code">` (styled monospace block) instead of plain `<pre>`.
+- Code samples (API contracts, JSON, SQL, command lines, type defs): use `<pre class="code" data-lang="<lang>">…</pre>`. The template auto-wraps the content in `<code class="language-<lang>">` and runs highlight.js at load. Common `data-lang` values: `typescript`, `javascript`, `json`, `sql`, `bash`, `python`, `go`, `yaml`, `http`. Omit `data-lang` for auto-detect. Don't add a `<code>` child yourself — the bootstrap does it.
 
 ## Changelog
 

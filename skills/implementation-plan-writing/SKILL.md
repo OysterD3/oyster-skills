@@ -159,6 +159,7 @@ HTML-only metadata placeholders:
 Content rules:
 
 - Use HTML — `<ul>`, `<table>`, `<code>`, `<pre class="code">` — not raw markdown. Escape `<`, `>`, `&` in user-supplied text.
+- Code samples (commands, SQL, JSON, type defs): use `<pre class="code" data-lang="<lang>">…</pre>`. The template auto-wraps the content in `<code class="language-<lang>">` and runs highlight.js. Common `data-lang` values: `typescript`, `javascript`, `json`, `sql`, `bash`, `python`, `go`, `yaml`. Omit `data-lang` for auto-detect.
 - Wrap diagrams as `<div class="diagram"><pre class="mermaid">…</pre></div>`.
 - Each step renders as a card. Use this exact structure (the template's CSS targets these class names):
 

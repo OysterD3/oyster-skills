@@ -200,6 +200,8 @@ Test inventory entries use:
 
 Test type classes: `test-type-unit`, `test-type-integration`, `test-type-e2e`, `test-type-security`, `test-type-perf`.
 
+Code excerpts (test snippets, command samples): use `<pre class="code" data-lang="<lang>">…</pre>`. The template auto-wraps the content in `<code class="language-<lang>">` and runs highlight.js. Common `data-lang` values: `typescript`, `javascript`, `python`, `go`, `bash`, `json`. Omit `data-lang` for auto-detect.
+
 ## Changelog
 
 Both files include a changelog at the top — HTML in a collapsible `<details>` block, MD as a small markdown table. The changelog is how readers see *what changed since last review* and replaces `-v2` versioning entirely.
