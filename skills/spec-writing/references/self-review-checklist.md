@@ -76,7 +76,7 @@ Output in chat. Keep it tight.
 | Check | Status | Note |
 |---|---|---|
 | Goal coverage | ✓ | |
-| Error codes defined | ⚠ | `WHATSAPP_RATE_LIMIT` referenced in Error handling but missing from API contracts |
+| Error codes defined | ⚠ | `RATE_LIMIT_EXCEEDED` referenced in Error handling but missing from API contracts |
 | Fields exist | ✓ | |
 | Failure modes addressed | ✓ | |
 | Security testable | ⚠ | "Validate webhook signature" needs an AC |

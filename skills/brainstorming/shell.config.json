@@ -1,0 +1,17 @@
+{
+  "title": "Brainstorming review",
+  "metaLabel": "Brainstorming review",
+  "next": "spec writing",
+  "extras": [],
+  "showGoal": true,
+  "showChangelog": true,
+  "sections": [
+    { "id": "context",    "heading": "Context",                       "container": "div", "bind": "context" },
+    { "id": "approaches", "heading": "Approaches considered",          "container": "div", "bind": "approachesConsidered" },
+    { "id": "approach",   "heading": "Approach",                       "container": "div", "bind": "approach" },
+    { "id": "decisions",  "heading": "Decisions",                      "container": "div", "bind": "decisions" },
+    { "id": "tradeoffs",  "heading": "Tradeoffs &amp; out of scope",   "container": "div", "bind": "tradeoffs" },
+    { "id": "questions",  "heading": "Open questions",                 "container": "ul",  "containerClass": "risks", "bind": "openQuestions" },
+    { "id": "security",   "heading": "Security pass",                  "container": "div", "bind": "security" }
+  ]
+}

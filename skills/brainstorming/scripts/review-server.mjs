@@ -21,10 +21,9 @@ import path from 'node:path';
 
 const PORT = parseInt(process.env.REVIEW_PORT || '7681', 10);
 const ROOT = process.cwd();
+// Skill assets root: ~/.claude/skills/ (this file lives at .../skills/brainstorming/scripts/review-server.mjs)
+const SKILLS_ROOT = path.resolve(new URL('../../', import.meta.url).pathname);
 const PID_FILE = process.env.REVIEW_PID_FILE || path.join('/tmp', `claude-review-server-${Buffer.from(ROOT).toString('hex').slice(0, 16)}.pid`);
-const IDLE_TIMEOUT_MS = parseInt(process.env.REVIEW_IDLE_TIMEOUT_MS || String(30 * 60 * 1000), 10);
-
-let lastActivity = Date.now();
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -69,8 +68,6 @@ function escapeHtml(s) {
 }
 
 const server = http.createServer(async (req, res) => {
-  lastActivity = Date.now();
-
   res.setHeader('access-control-allow-origin', '*');
   res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
   res.setHeader('access-control-allow-headers', 'content-type');
@@ -125,6 +122,28 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 405, { error: 'method not allowed' });
     }
 
+    // Shell assets: /__shell/<skill>/<file> → ~/.claude/skills/<skill>/assets/<file>
+    if (url.pathname.startsWith('/__shell/')) {
+      const rel = url.pathname.slice('/__shell/'.length);
+      const segs = rel.split('/').filter(Boolean);
+      if (segs.length < 2) return sendJson(res, 400, { error: 'invalid shell path' });
+      const [skill, ...rest] = segs;
+      if (!/^[a-z0-9_-]+$/i.test(skill)) return sendJson(res, 400, { error: 'invalid skill name' });
+      const file = rest.join('/');
+      if (file.includes('..') || file.startsWith('/')) return sendJson(res, 403, { error: 'forbidden' });
+      const abs = path.normalize(path.join(SKILLS_ROOT, skill, 'assets', file));
+      const expectedPrefix = path.normalize(path.join(SKILLS_ROOT, skill, 'assets')) + path.sep;
+      if (!abs.startsWith(expectedPrefix)) return sendJson(res, 403, { error: 'forbidden' });
+      try {
+        const content = await fs.readFile(abs);
+        const ct = MIME[path.extname(abs).toLowerCase()] || 'application/octet-stream';
+        res.writeHead(200, { 'content-type': ct, 'cache-control': 'public, max-age=300' });
+        return res.end(content);
+      } catch {
+        return sendJson(res, 404, { error: 'shell asset not found', path: rel });
+      }
+    }
+
     // Static file serving
     let p = decodeURIComponent(url.pathname);
     if (p === '/') p = '/docs';
@@ -171,17 +190,8 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`[review-server] http://localhost:${PORT}`);
   console.log(`[review-server] serving ${ROOT}`);
   console.log(`[review-server] pid file: ${PID_FILE}`);
-  console.log(`[review-server] idle timeout: ${Math.round(IDLE_TIMEOUT_MS / 1000)}s`);
+  console.log(`[review-server] runs until POST /api/shutdown or SIGINT/SIGTERM`);
 });
-
-// Idle timeout sweep
-setInterval(() => {
-  if (Date.now() - lastActivity > IDLE_TIMEOUT_MS) {
-    console.log('[review-server] idle timeout, shutting down');
-    cleanup();
-    process.exit(0);
-  }
-}, 60_000).unref();
 
 process.on('SIGINT', () => { cleanup(); process.exit(0); });
 process.on('SIGTERM', () => { cleanup(); process.exit(0); });

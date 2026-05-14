@@ -25,11 +25,11 @@ Drive this with TodoWrite — one todo per item.
 - [ ] **Read the relevant code.** This is where you ground the approach in reality — open the modules implied by the Approach: existing types, function signatures, error shapes, similar features already shipped. The list of files to touch and the concrete contract shape are produced *here*, not inherited from brainstorming.
 - [ ] **Draft the spec internally.** Map brainstorming → spec sections per the [Mapping](#brainstorming--spec-mapping) below. Identify gaps that need narrow clarifying questions.
 - [ ] **Ask narrow clarifying questions** for legitimate spec-level gaps. ONE at a time. See [Question scope](#question-scope). If there are none, skip this step.
-- [ ] **Self-review.** Read [references/self-review-checklist.md](references/self-review-checklist.md) and run both passes. Output the review report in chat (the user benefits from seeing the rigor). Fix issues and re-run until clean.
-- [ ] **Render HTML** to `<cwd>/docs/specs/<YYYY-MM-DD>-<slug>.html` using `assets/spec-template.html`. Same slug as the brainstorming file when continuing the same thread; otherwise derive from the goal.
+- [ ] **Self-review (delegated, parallel).** Spawn ONE subagent per pass — alignment + internal consistency — in a single message. `model: sonnet`, `subagent_type: general-purpose`, read-only. The subagent doesn't carry your drafting bias, which is the point. See [Delegated self-review](#delegated-self-review). Collect both reports, surface them inline so the user sees the rigor, fix any ⚠/✗ items, and re-run *only the affected pass* if a fix touched its scope.
+- [ ] **Render HTML** to `<cwd>/docs/specs/<YYYY-MM-DD>-<slug>.html` using `assets/spec.tmpl.html`. Same slug as the brainstorming file when continuing the same thread; otherwise derive from the goal.
 - [ ] **Start the review server** (if not already running). See [Review server lifecycle](#review-server-lifecycle).
 - [ ] **Hand off for review.** Tell the user the URL (`http://localhost:7681/docs/specs/<file>.html`), not the file path. Stop and wait. Do not write the MD yet.
-- [ ] **On approval, write MD** to `<cwd>/docs/specs/<YYYY-MM-DD>-<slug>.md` using `assets/spec-template.md`. Tell the user the path. This is the canonical artifact.
+- [ ] **On approval, write MD** to `<cwd>/docs/specs/<YYYY-MM-DD>-<slug>.md` using `assets/spec.tmpl.md`. Tell the user the path. This is the canonical artifact.
 - [ ] **Shut the review server down** before handing off to impl-plan-writing. See [Review server lifecycle](#review-server-lifecycle).
 - [ ] **Stop.** Do not start implementation. The spec exists to be referenced during implementation, not to chain forward automatically.
 
@@ -89,12 +89,48 @@ Brainstorming gives you the **approach** (and the reasoning behind it). The spec
 
 ## Self-review
 
-After the draft is complete, run the review per [references/self-review-checklist.md](references/self-review-checklist.md). It defines two passes:
+The review per [references/self-review-checklist.md](references/self-review-checklist.md) defines two passes:
 
 1. **Alignment** — every brainstorming decision is reflected in the spec; nothing silently dropped.
 2. **Internal consistency** — the spec doesn't contradict itself (API codes defined, fields exist, acceptance criteria cover the goal, security mitigations are testable).
 
-Output the review report in chat as a short table or bullet list. Mark each item ✓ / ⚠ / ✗. If anything is ⚠ or ✗, fix the spec and re-run until the report is all ✓. Only then render the HTML.
+These passes are **delegated to subagents**, not run inline — see [Delegated self-review](#delegated-self-review) below.
+
+## Delegated self-review
+
+Spawn ONE subagent per pass, in a **single message** (so they run in parallel). Each subagent reads a self-contained brief and returns a ✓/⚠/✗ table. The main agent collects the reports, applies fixes, and re-runs *only* the affected subagent on the changed sections.
+
+Why delegate:
+
+- **Fresh eyes** — the subagent didn't draft the spec, so it doesn't carry the "of course I covered that" bias.
+- **Parallel** — alignment and consistency are independent passes; running them concurrently halves the wall-clock cost.
+- **Token isolation** — Sonnet 4.6 handles the structured walkthrough; the main agent (Opus) stays on synthesis and judgment.
+
+Per-subagent brief — include verbatim in the `prompt` (each subagent has no conversation history):
+
+```
+You are reviewing a draft engineering spec. Read-only — do not edit any files.
+
+INPUTS:
+- Brainstorming source: <cwd>/docs/brainstorming/<slug>.content.json
+- Draft spec (Markdown): <cwd>/docs/specs/<slug>.md   (or the in-flight draft if not yet written)
+- Checklist (this pass only): below
+
+CHECKLIST — <Pass 1: Alignment | Pass 2: Internal consistency>:
+<paste the relevant pass table from skills/spec-writing/references/self-review-checklist.md>
+
+OUTPUT:
+A markdown table with columns: # | Check | Status (✓/⚠/✗) | Note.
+For each ⚠ or ✗, the note must be specific — name the section, the field, or the contradicting line. No vague hand-waves.
+
+Limit your report to 400 words.
+```
+
+`subagent_type: general-purpose`, `model: sonnet`, `description`: 3–5 words ("Spec alignment review" / "Spec consistency review").
+
+After both reports return, output them inline in chat so the user sees the rigor. Fix any ⚠/✗ items. Re-spawn only the affected pass on the changed sections — don't re-run the clean one.
+
+**Don't**: run the review inline yourself. **Don't**: spawn with `model: opus`. **Don't**: let the subagent edit files (it's read-only by design).
 
 ## Output artifacts
 
@@ -106,11 +142,11 @@ Both files share the slug. Date-prefixed for natural sort.
 - MD (canonical): `<cwd>/docs/specs/<YYYY-MM-DD>-<slug>.md`
 
 Slug rules:
-- 2–5 kebab-case words from the goal (e.g. `telegram-forward-dedup`)
+- 2–5 kebab-case words from the goal (e.g. `posts-archive-idempotent`)
 - If continuing from a brainstorming file, reuse its slug for traceability
 - **If a file with the same name already exists, treat it as a continuation.** Read it, prepend a new changelog row (see [Changelog](#changelog)), and update in place. Don't write `-v2`. If the existing file is unrelated work that genuinely collided, ask the user before clobbering.
 
-### MD template (`assets/spec-template.md`)
+### MD template (`assets/spec.tmpl.md`)
 
 Read it, replace placeholders, write the result. Plain markdown. Mermaid blocks use fenced code blocks (` ```mermaid `) so they render on GitHub and in any markdown viewer.
 
@@ -119,7 +155,7 @@ Read it, replace placeholders, write the result. Plain markdown. Mermaid blocks 
 | `{{TITLE}}` | Short title | 3–8 words |
 | `{{DATE}}` | `YYYY-MM-DD` | |
 | `{{STATUS}}` | `Draft` initially, `Approved` after user signs off on the MD | |
-| `{{BRAINSTORMING_LINK}}` | Relative link to brainstorming file, or `none` | `[2026-05-13-telegram-forward.html](../brainstorming/2026-05-13-telegram-forward.html)` |
+| `{{BRAINSTORMING_LINK}}` | Relative link to brainstorming file, or `none` | `[2026-05-13-posts-archive.html](../brainstorming/2026-05-13-posts-archive.html)` |
 | `{{GOAL}}` | One-sentence goal | Plain text |
 | `{{ACCEPTANCE_CRITERIA}}` | Numbered list of testable conditions | Each one observable |
 | `{{OUT_OF_SCOPE}}` | Bulleted | Verbatim from brainstorming where possible |
@@ -134,7 +170,7 @@ Read it, replace placeholders, write the result. Plain markdown. Mermaid blocks 
 | `{{IMPLEMENTATION_NOTES}}` | File-by-file change summary | Brief; this isn't a checklist for the implementer to follow blindly |
 | `{{CHANGELOG_ROWS_MD}}` | One row per revision, newest at top | See [Changelog](#changelog) |
 
-### HTML template (`assets/spec-template.html`)
+### HTML template (`assets/spec.tmpl.html`)
 
 Dark mode, Mermaid 11 from CDN, same visual language as brainstorming. Section placeholders match the MD template (`{{GOAL}}`, `{{ACCEPTANCE_CRITERIA}}`, etc.) but expect **HTML content**, not markdown.
 
@@ -231,7 +267,7 @@ After writing the MD and before handing off to impl-plan-writing:
 curl -sf -X POST http://localhost:7681/api/shutdown > /dev/null
 ```
 
-The server has a 30-minute idle timeout as a fallback.
+The server stays up until something explicitly shuts it down — no idle auto-shutdown.
 
 ## Processing inline comments
 
@@ -248,8 +284,8 @@ Use the Read tool on the comments JSON. Schema:
     {
       "id": "cm1715539200abc",
       "section": "API contracts",
-      "quote": "POST /sim-cards/:id/forward",
-      "body": "should return 422 on already-enabled, not 409",
+      "quote": "POST /posts/:id/archive",
+      "body": "should return 422 on already-archived, not 409",
       "ts": "2026-05-13T19:30:00.000Z"
     }
   ]
@@ -272,7 +308,7 @@ Treat each as a revision request:
 | Don't | Do |
 |---|---|
 | Copy brainstorming verbatim into the spec | Tighten and elaborate. Spec is more precise: types, codes, thresholds. |
-| Skip self-review because "it looks fine" | Run it. The user picked alignment+consistency for a reason — pattern-match against the checklist. |
+| Skip self-review because "it looks fine" | Delegate it. The fresh-eyes effect catches what the author can't see; spawning two Sonnet subagents in parallel costs almost nothing. |
 | Render HTML with `⚠` items still open | Fix first, render after. |
 | Write the MD when the user hasn't approved the HTML | HTML first. MD only after explicit go. |
 | Ask 3 clarifying questions in one turn | One at a time. If you can't pick the most important one, the spec isn't drafted enough yet. |

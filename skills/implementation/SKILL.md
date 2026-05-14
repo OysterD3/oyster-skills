@@ -58,8 +58,8 @@ For each step in the wave:
 1. Run `bash ~/.claude/skills/implementation/scripts/worktree.sh setup <plan-slug> <step-num> <step-slug>` — creates `<repo>/.worktrees/<plan>/step-<N>-<slug>` on branch `impl/<plan>/step-<N>-<slug>`, forked from the consolidated worktree's current tip. The script prints the step worktree path on stdout — capture it as `{{WORKTREE_PATH}}` for the agent prompt.
 2. Spawn an `Agent` call with:
    - `subagent_type`: `general-purpose` (only agent with full tool access for edits)
-   - `description`: short summary like `"Execute step 3: Add DAL setForwardEnabled"`
-   - `prompt`: the full self-contained briefing from [references/agent-prompt-template.md](references/agent-prompt-template.md), with placeholders filled — `{{WORKTREE_PATH}}` is the path from step 1.
+   - `description`: short summary like `"Execute step 3: Add DAL setArchived"`
+   - `prompt`: the full self-contained briefing from [references/agent-prompt.tmpl.md](references/agent-prompt.tmpl.md), with placeholders filled — `{{WORKTREE_PATH}}` is the path from step 1.
 
 Do **not** pass `isolation: "worktree"`. The script owns worktree lifecycle so the worktrees land at predictable paths the user can inspect and `.gitignore` knows about.
 
@@ -153,7 +153,7 @@ Never silently retry. Never quietly tweak the plan. Always surface and ask.
 
 ## What goes in the subagent prompt
 
-The subagent has NO conversation history. The prompt must be fully self-contained. Use [references/agent-prompt-template.md](references/agent-prompt-template.md) as the source of truth. It includes:
+The subagent has NO conversation history. The prompt must be fully self-contained. Use [references/agent-prompt.tmpl.md](references/agent-prompt.tmpl.md) as the source of truth. It includes:
 
 - Repo root path
 - Step number, title, goal
@@ -169,7 +169,7 @@ The subagent has NO conversation history. The prompt must be fully self-containe
 
 Some steps can't safely be dispatched to a parallel agent. Run these in the orchestrator's own context, sequentially:
 
-- **DB migrations** — running `pnpm db:migrate` in a parallel worktree against the project's dev DB would race. Either: (a) the user runs migrations manually before the wave that needs them, (b) the orchestrator runs them inline before dispatching dependent agents.
+- **DB migrations** — running the project's migration command (e.g. `npm run db:migrate`) in a parallel worktree against the project's dev DB would race. Either: (a) the user runs migrations manually before the wave that needs them, (b) the orchestrator runs them inline before dispatching dependent agents.
 - **Steps marked as manual** in the impl plan (e.g. "create the Stripe webhook in their dashboard").
 - **Final post-flight checks** — orchestrator runs these directly in the main worktree.
 

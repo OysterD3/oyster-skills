@@ -39,7 +39,7 @@ Skip rows that aren't applicable with explicit reason. "Not applicable" without 
 | Project's Postgres | **Never** | Integration tests hit a real DB. Use test DB with rollback per test, or transactional fixtures. |
 | Project's Redis | **Never** | Same reasoning. |
 | Project's queue (BullMQ etc.) | **Never** | Use the real queue with a test-scoped connection or in-process worker. |
-| External third-party APIs (Telegram, WhatsApp, Stripe) | **Yes** | Use fixtures, nock, or msw. The integration with these is tested via contract tests, not by hitting prod. |
+| External third-party APIs (payment gateways, email providers, etc.) | **Yes** | Use fixtures, nock, or msw. The integration with these is tested via contract tests, not by hitting prod. |
 | Time (`Date.now`, `new Date`) | **Yes** | Inject a clock or use `jest.useFakeTimers`. |
 | Randomness (`Math.random`, `crypto.randomUUID`) | **Yes** | Seed it or inject. |
 | Filesystem | **Sometimes** | Real FS in a temp directory is fine; mock when the file shape is the unit-under-test contract. |
@@ -107,16 +107,16 @@ Names describe behavior, not implementation:
 
 | Bad | Good |
 |---|---|
-| `calls hasAccess()` | `rejects unowned sim card with 403` |
+| `calls hasAccess()` | `rejects unowned post with 403` |
 | `returns true when valid` | `accepts E.164-formatted phone number` |
-| `does not throw` | `succeeds when forwarding to chat the user already joined` |
-| `unit test for forwarding` | `enqueues forward job after enabling forward` |
+| `does not throw` | `succeeds when archiving a post the user owns` |
+| `unit test for archive` | `enqueues purge job after archiving a post` |
 
 A reader who has never seen the code should understand what the test proves from the name alone.
 
 ## 9. Test isolation
 
-- Each test sets up its own state. No "given the DB has 10 sim cards from the previous test."
+- Each test sets up its own state. No "given the DB has 10 posts from the previous test."
 - Each test cleans up (or uses a per-test transaction that rolls back).
 - No global mutable test setup unless idempotent (e.g. migrations).
 - No test imports another test file's helpers via side effects.

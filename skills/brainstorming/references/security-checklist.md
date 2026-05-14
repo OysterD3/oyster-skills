@@ -4,6 +4,8 @@ Run this AFTER the functional plan is agreed and BEFORE sign-off. Walk each appl
 
 For each item: name the threat, name the mitigation, decide who's responsible (this PR vs. existing layer vs. follow-up). If a mitigation is being deferred, say so explicitly and note the residual risk.
 
+**This is the backstop, not the whole pass.** Feature-specific threat modeling happens *before* this — the brainstorming workflow has the probe ("name 1–3 threats unique to this feature's surface"). A checklist catches the same dozen categories every time; it won't catch LLM prompt injection, RLS bypass, replay attacks, or whatever's specific to your feature. Don't skip the probe and lean on this one alone.
+
 ## How to use
 
 1. Skim every section header. Mark each "applies" / "N/A — because…". A header marked N/A without a reason is a hole.
@@ -25,7 +27,7 @@ These cannot be left to a follow-up PR:
 
 ### 1. AuthN / AuthZ
 - New endpoint, queue handler, or webhook? Verify auth guard is present.
-- Does the handler scope by `tenantId` / `userId` / `simCardId` (whatever the ownership boundary is)? A query without that scope is a tenant-bleed bug waiting to happen.
+- Does the handler scope by `tenantId` / `userId` / `<resource>Id` (whatever the ownership boundary is)? A query without that scope is a tenant-bleed bug waiting to happen.
 - Role/permission check needed beyond authenticated? (admin vs. member, write vs. read)
 - Webhook endpoints: signature verification with shared secret, replay protection, source IP allowlist if available.
 - Service-to-service: mTLS, signed JWT with short TTL, or API key from secret store — never a long-lived bearer in code.
@@ -84,6 +86,32 @@ These cannot be left to a follow-up PR:
 - User deletion: does the new data participate in delete-user flows? If yes, verify cascade or soft-delete.
 - Data export: included in user data export if you have one?
 - Cross-border data: any restrictions to honor?
+
+## Conditional sub-checklists
+
+Walk these *only if* the feature touches the relevant surface. They're add-ons to the generic sections above, not replacements. Mark "N/A — feature doesn't touch this" if not applicable; do not silently skip.
+
+### A. LLM in the loop
+
+Trigger: the feature sends prompts to a language model, parses model output, or runs tools/functions chosen by the model.
+
+- **Prompt injection**: any user-controlled text reaches the model? Treat model output as adversarial. Never `eval` it, never directly trigger destructive tools without an intermediate guard or user confirmation.
+- **System-prompt and context leakage**: assume the system prompt and any in-context data will be exfiltrated by a determined user. Don't put secrets, internal hostnames, or another user's data in the context window.
+- **Output sanitization**: rendering model output as HTML/Markdown? Sanitize like any other user-supplied content. Model-generated XSS is still XSS.
+- **Decision integrity**: if the model output drives an authorization, billing, or moderation outcome, what happens when it hallucinates? Is there a deterministic guard, or does a bad output ship a bad outcome?
+- **Provider data handling**: what's in the context window that crosses the network to the model provider? Match their data-retention/training terms to your privacy commitments.
+- **Inference-path rate limiting**: a single user can torch the inference budget. Per-user / per-tenant caps separate from the model provider's own rate limits.
+
+### B. Cryptographic operations
+
+Trigger: the feature signs, encrypts, derives keys, generates tokens, or compares secrets.
+
+- **Algorithm choice**: use the language/platform's vetted default (libsodium, Web Crypto, language-stdlib crypto). No custom protocols, no DES/MD5/SHA1, no ECB-mode block ciphers.
+- **IV / nonce uniqueness**: random nonces for AEAD; never reused across messages with the same key.
+- **Key storage**: KMS, secrets vault, or env. Never alongside the data the key protects.
+- **Key rotation**: documented rotation path. Keys are not "set once at install."
+- **Timing-safe comparison**: secret/token comparisons use constant-time compare (`crypto.timingSafeEqual` or equivalent). `==` on a token is a timing oracle.
+- **Token format**: signed tokens include `iat`, `exp`, and `jti` (replay defense). Use a vetted JWT/PASETO library; don't hand-roll.
 
 ## Final gate
 

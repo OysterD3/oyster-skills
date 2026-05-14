@@ -29,7 +29,7 @@ A trusted senior engineer's read on a plan. Honest, specific, fast. The goal is 
 
 2. **Read it fully.** Don't skim. The good roasts come from reading carefully.
 
-3. **Read enough surrounding code to ground the roast.** If the plan touches `SimCardsDal`, open it — your roast is only as good as your knowledge of what the plan is colliding with.
+3. **Read enough surrounding code to ground the roast.** If the plan touches a specific module (e.g. `OrdersDal`), open it — your roast is only as good as your knowledge of what the plan is colliding with.
 
 4. **Walk the [Attack angles](#attack-angles).** For each angle, ask: does the plan have a real, named weakness here? If yes, draft a concrete roast. If no, move on. Don't force.
 
@@ -151,7 +151,7 @@ Pick the template that matches reality. Never use the "fundamentally off" templa
 > "You should consider performance implications of the new column."
 
 ### Good roast (specific)
-> **Cold column on a hot row** — Putting `forward_enabled` on the `sim_cards` row means every read pulls a column 99% of consumers ignore. Today it's one boolean: fine. The moment someone adds `forwarding_rules` as JSONB next quarter, the row average size doubles and the hot-path `sim_cards` SELECTs eat that cost forever. A `sim_card_forwarding` side-table now is trivial; later it's a migration that locks the table.
+> **Cold column on a hot row** — Putting `archived_at` on the `posts` row means every read pulls a column 99% of consumers ignore. Today it's one timestamp: fine. The moment someone adds `archive_metadata` as JSONB next quarter, the row average size doubles and the hot-path `posts` SELECTs eat that cost forever. A `post_archive` side-table now is trivial; later it's a migration that locks the table.
 
 ### Bad compliment (generic)
 > "This is a solid plan."

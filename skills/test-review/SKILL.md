@@ -29,7 +29,7 @@ Triggered after impl-plan approval. The user says "review the tests", "test plan
 
 ### Audit mode
 
-Triggered when the user asks to audit existing tests in a module or directory: "audit the tests for the SimCards module", "check our auth test coverage", "are these tests good enough?".
+Triggered when the user asks to audit existing tests in a module or directory: "audit the tests for the Payments module", "check our auth test coverage", "are these tests good enough?".
 
 - **Input:** a target directory or module the user names. Read its existing test files AND its source files to understand the surface being tested.
 - **Goal:** report what's tested, what's missed, what's bad (mock-policy violations, flake risks, weak assertions), and what to add.
@@ -49,11 +49,11 @@ Drive with TodoWrite — one todo per item.
 - [ ] **Draft per-test entries** with name, type (unit/integration/e2e/security/perf), file path, assertion intent, mock policy.
 - [ ] **Run the coverage checklist** in [references/coverage-checklist.md](references/coverage-checklist.md). This is the rigor pass: AC coverage, path coverage, mock policy, determinism, security tests, perf tests.
 - [ ] **Ask narrow clarifying questions** for genuine ambiguities (e.g. "is the 100/min rate limit a unit-test concern or a load-test concern?"). Batch independent ones; serialize dependent ones.
-- [ ] **Self-review.** Two passes (alignment + consistency) — see [Self-review](#self-review). Output the report in chat. Fix until clean.
-- [ ] **Render HTML** to `<cwd>/docs/test-reviews/<YYYY-MM-DD>-<slug>.html` using `assets/review-template.html`. In chained mode, reuse the impl plan's slug. In audit mode, derive slug from the target (`audit-sim-cards`, `audit-auth`).
+- [ ] **Self-review (delegated, parallel).** Spawn ONE subagent per pass — alignment + internal consistency — in a single message. `model: sonnet`, `subagent_type: general-purpose`, read-only. See [Delegated self-review](#delegated-self-review). Collect reports, surface inline, fix any ⚠/✗ items, re-run *only the affected pass*.
+- [ ] **Render HTML** to `<cwd>/docs/test-reviews/<YYYY-MM-DD>-<slug>.html` using `assets/review.tmpl.html`. In chained mode, reuse the impl plan's slug. In audit mode, derive slug from the target (`audit-payments`, `audit-auth`).
 - [ ] **Start the review server** (if not already running). See [Review server lifecycle](#review-server-lifecycle).
 - [ ] **Hand off.** Tell the user the URL (`http://localhost:7681/docs/test-reviews/<file>.html`), not the file path. Stop. Do not write the MD.
-- [ ] **On approval, write MD** to `<cwd>/docs/test-reviews/<YYYY-MM-DD>-<slug>.md` using `assets/review-template.md`.
+- [ ] **On approval, write MD** to `<cwd>/docs/test-reviews/<YYYY-MM-DD>-<slug>.md` using `assets/review.tmpl.md`.
 - [ ] **Shut the review server down** before handing off to the implementation skill. See [Review server lifecycle](#review-server-lifecycle).
 - [ ] **Stop.** This is the last review skill in the chain. Implementation is the next step — and is the user's call, not yours.
 
@@ -65,17 +65,17 @@ The coverage map is the centerpiece of every test review. It's a table that maps
 
 | AC / behavior | Test name | Type | File | Status |
 |---|---|---|---|---|
-| AC1: returns 200 + body | `enables forwarding for owned sim card` | integration | `src/sim-cards/sim-cards.controller.spec.ts` | ✓ proposed |
-| AC2: rejects unowned sim card with 403 | — | — | — | ✗ gap |
-| Behavior: queue receives forward job | `enqueues forward job after enable` | integration | `src/sim-cards/sim-cards.service.spec.ts` | ✓ proposed |
+| AC1: returns 200 + body | `archives an owned post` | integration | `src/posts/posts.controller.spec.ts` | ✓ proposed |
+| AC2: rejects unowned post with 403 | — | — | — | ✗ gap |
+| Behavior: queue receives purge job | `enqueues purge job after archive` | integration | `src/posts/posts.service.spec.ts` | ✓ proposed |
 
 ### Audit mode
 
 | Function / route | Test(s) | Type | Status | Notes |
 |---|---|---|---|---|
-| `POST /sim-cards/:id/forward` | `enables forwarding (200)`, `403 on unowned` | integration | ✓ covered | |
-| `simCardsDal.setForwardEnabled` | `toggles column` | unit | ⚠ partial | no error-path test |
-| `forwardWorker.process` | — | — | ✗ gap | no test file exists |
+| `POST /posts/:id/archive` | `archives an owned post (200)`, `403 on unowned` | integration | ✓ covered | |
+| `postsDal.setArchived` | `toggles column` | unit | ⚠ partial | no error-path test |
+| `purgeWorker.process` | — | — | ✗ gap | no test file exists |
 
 Statuses: ✓ covered · ⚠ partial · ✗ gap. Every row gets one.
 
@@ -112,7 +112,7 @@ If you want to ask a not-allowed question, instead add an observation in **Gaps 
 
 ## Self-review
 
-Run BEFORE rendering HTML. Two passes:
+Run BEFORE rendering HTML. Two passes, **delegated to subagents** — see [Delegated self-review](#delegated-self-review) below.
 
 ### Pass 1 — Alignment
 
@@ -127,9 +127,41 @@ Run BEFORE rendering HTML. Two passes:
 - No DB mock is marked ✓ in the policy audit (project invariant).
 - Every determinism risk has a fix in the review.
 - Every gap in the coverage map appears in **Gaps & risks** or **Recommendations**.
-- Test names describe behavior, not implementation (e.g. "rejects unowned sim card", not "calls hasAccess()").
+- Test names describe behavior, not implementation (e.g. "rejects unowned post", not "calls hasAccess()").
 
-Output the report in chat as a ✓/⚠/✗ table per the pattern in earlier skills. Fix until all ✓. Then render HTML.
+## Delegated self-review
+
+Spawn ONE subagent per pass, in a **single message** (parallel). Each subagent returns a ✓/⚠/✗ table. The main agent collects reports, applies fixes, and re-runs *only* the affected subagent on the changed sections.
+
+Why delegate: fresh eyes (the subagent didn't write the review), parallel passes halve wall-clock, and Sonnet 4.6 handles the structured walkthrough fine — main agent (Opus) stays on synthesis.
+
+Per-subagent brief — include verbatim in the `prompt`:
+
+```
+You are reviewing a draft test-review document. Read-only — do not edit any files.
+
+INPUTS:
+- Source spec (MD): <cwd>/docs/specs/<slug>.md   (chained mode)
+- Source impl plan (MD): <cwd>/docs/impl-plans/<slug>.md   (chained mode)
+- Target module/dir: <path>   (audit mode)
+- Draft test-review (MD): <cwd>/docs/test-reviews/<slug>.md  (or in-flight draft)
+- Checklist (this pass only): below
+
+CHECKLIST — <Pass 1: Alignment | Pass 2: Internal consistency>:
+<paste the relevant bullets from the Self-review section of skills/test-review/SKILL.md>
+
+OUTPUT:
+A markdown table with columns: # | Check | Status (✓/⚠/✗) | Note.
+For each ⚠ or ✗, the note must be specific — name the test, the AC, the function, or the mock that triggered the flag.
+
+Limit your report to 400 words.
+```
+
+`subagent_type: general-purpose`, `model: sonnet`, `description`: 3–5 words ("Test-review alignment" / "Test-review consistency").
+
+After both reports return, output them inline. Fix any ⚠/✗ items. Re-spawn only the affected pass.
+
+**Don't**: run inline yourself. **Don't**: spawn with `model: opus`. **Don't**: let the subagent edit files.
 
 ## Output artifacts
 
@@ -140,10 +172,10 @@ Output the report in chat as a ✓/⚠/✗ table per the pattern in earlier skil
 
 Slug rules:
 - Chained: reuse the impl plan's slug.
-- Audit: prefix with `audit-` plus the target name (`audit-sim-cards`, `audit-auth-module`).
+- Audit: prefix with `audit-` plus the target name (`audit-payments`, `audit-auth-module`).
 - **If a file with the same name already exists, treat it as a continuation** — read it, prepend a new changelog row (see [Changelog](#changelog)), and update in place on BOTH files together. Don't write `-v2`. If the existing file is unrelated work that genuinely collided, ask the user before clobbering.
 
-### MD template (`assets/review-template.md`)
+### MD template (`assets/review.tmpl.md`)
 
 Standard markdown. Tables for coverage maps. Mermaid in fenced ` ```mermaid ` blocks if a coverage diagram aids understanding (optional — usually the table is enough).
 
@@ -166,7 +198,7 @@ Standard markdown. Tables for coverage maps. Mermaid in fenced ` ```mermaid ` bl
 | `{{RECOMMENDATIONS}}` | Concrete test files to add |
 | `{{CHANGELOG_ROWS_MD}}` | One row per revision, newest at top — see [Changelog](#changelog) |
 
-### HTML template (`assets/review-template.html`)
+### HTML template (`assets/review.tmpl.html`)
 
 Dark mode, Mermaid 11 from CDN, same visual language as the rest of the chain. Coverage map renders with status badges: green ✓, yellow ⚠, red ✗ — colors auto-applied via CSS when the cell uses the right class.
 
@@ -192,8 +224,8 @@ Test inventory entries use:
 ```html
 <article class="test-entry">
   <span class="test-type test-type-unit">unit</span>
-  <span class="test-name">enables forwarding for owned sim card</span>
-  <code class="test-file">src/sim-cards/sim-cards.controller.spec.ts</code>
+  <span class="test-name">archives an owned post</span>
+  <code class="test-file">src/posts/posts.controller.spec.ts</code>
   <p class="test-intent">Asserts 200 + correct response body for the happy path.</p>
 </article>
 ```
@@ -282,8 +314,8 @@ Use the Read tool on the comments JSON. Schema:
   "comments": [
     {
       "id": "cm1715539200abc",
-      "section": "Test: enables forwarding for owned sim card",
-      "quote": "enables forwarding for owned sim card",
+      "section": "Test: archives an owned post",
+      "quote": "archives an owned post",
       "body": "this test mocks the DB — rewrite to use real DB per project rule",
       "ts": "2026-05-13T19:30:00.000Z"
     }
@@ -312,6 +344,6 @@ Treat each as a revision request:
 | Mark a test "covered" without checking the assertion | Read the test. A test that calls a function but asserts nothing meaningful is a gap, not coverage. |
 | Suggest 100% coverage as the target | Risk-based coverage. Hot paths and security items need rigor; trivial getters don't. |
 | Add unit tests for code that's only meaningfully testable as integration | Match the test type to what's being verified. |
-| Test names that describe implementation | "calls hasAccess()" → "rejects unowned sim card". The name describes observable behavior. |
+| Test names that describe implementation | "calls hasAccess()" → "rejects unowned post". The name describes observable behavior. |
 | Skip the determinism review because tests "look fine" | Flakes hide here. Always scan for `Date.now`, network calls, unseeded randomness, order coupling. |
 | Run the project's test command to "verify coverage" | Read-only skill. Tests are run by the engineer during implementation, not during review. |

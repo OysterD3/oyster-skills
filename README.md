@@ -81,7 +81,7 @@ node ~/.claude/skills/brainstorming/scripts/review-server.mjs
 
 Then open `http://localhost:7681/docs/<area>/<file>.html` in your browser. Select any text → click "💬 Comment" → leave inline feedback. Comments save automatically to `<filename>.comments.json` next to the HTML; when you say "address the comments" in chat, Claude reads them directly.
 
-The server has a 30-minute idle timeout. Each review skill auto-starts it (if not already running) when handing off, and shuts it down at completion. Manual shutdown: `curl -X POST http://localhost:7681/api/shutdown`.
+Each review skill auto-starts the server (if not already running) when handing off, and shuts it down at completion. The server stays up otherwise — no idle auto-shutdown — so it won't kill a session you've stepped away from. Manual shutdown: `curl -X POST http://localhost:7681/api/shutdown`.
 
 ## How implementation parallelizes work
 
