@@ -26,8 +26,8 @@ Non-negotiable. Violating any of them defeats the skill.
 Drive this with TodoWrite — one todo per item. Mark each complete as you go.
 
 - [ ] **Restate the goal in one sentence.** Get the user to confirm before research. Catches misunderstandings cheaply.
-- [ ] **Research the codebase.** Grep/read relevant files: existing patterns, the module that will change, similar features already shipped, the data model, the auth layer. Note conflicts between user's framing and what the code actually does. *This research informs your interview — it does not appear in the HTML.*
-- [ ] **Research external context if libraries/APIs are involved.** Use `mcp__context7__resolve-library-id` + `mcp__context7__query-docs` for library docs, or WebFetch for specific URLs. Skip if pure internal logic.
+- [ ] **Research the codebase.** For a single targeted lookup (known path, one grep) do it inline with `Bash`/`Read`. When the research fans out into independent axes — *how does auth work* AND *how does the forward worker retry* AND *what's the data model around X* — spawn parallel `Explore` subagents (one per axis, `model: sonnet`) in a single message. Note conflicts between the user's framing and what the code actually does. *This research informs your interview — it does not appear in the HTML.* See [Parallel research](#parallel-research).
+- [ ] **Research external context if libraries/APIs are involved.** For one library, use `mcp__context7__resolve-library-id` + `mcp__context7__query-docs` inline. For multiple libraries or several unrelated questions about one library, spawn parallel `general-purpose` subagents (`model: sonnet`) — one per topic — and ask each for a ≤200-word brief. Skip both if it's pure internal logic.
 - [ ] **Summarize findings (chat only).** 3–6 bullets: what exists, what's missing, what surprised you, conflicts with the user's framing. Surface the riskiest unknown — that's where the interview starts.
 - [ ] **Sketch mockup directions (UI only).** If the change introduces new visual surface (screen, page, modal, prominent component), propose 2–4 named layout directions with ASCII previews in a single `AskUserQuestion`. The pick frames the rest of the interview *and* becomes a decision row. See [UI mockup sampling](#ui-mockup-sampling). Skip for pure backend/schema/infra/refactor/copy work.
 - [ ] **Propose 2–3 distinct approaches and recommend one.** Before any detailed interviewing, name 2–3 structurally different ways to solve this (not stylistic variants). For each: short name, one-line gist, the tradeoff (what it's good at vs. what it costs). Lead with a recommendation and the *why* (matches existing patterns, lower risk, simpler ops, better fit for constraint X, etc.) — do not present them as a neutral menu. Use ONE `AskUserQuestion` with the recommendation as option 1 labeled "(Recommended)". The pick frames every later question. See [Proposing approaches](#proposing-approaches). *If the change is UI-heavy and the mockup pick already determined the system-design approach, record that pick as the chosen approach and skip — don't ask twice.*
@@ -68,6 +68,42 @@ When the user is conflating two features.
 ### Probe a thin "why"
 When the picked option is clear but the reason isn't.
 > "You picked the lock approach over the unique constraint. Is the reason: (a) it composes with future multi-row work in the same critical section, (b) the team is more comfortable debugging lock contention than catching specific error codes, or (c) something else? I want to put the actual reason in the decisions table so a reviewer knows what to push back on if they disagree."
+
+## Parallel research
+
+Research dominates the brainstorm budget. When axes are independent, fan them out as parallel subagents in a single message — they run concurrently, and Sonnet 4.6 is plenty for read-only investigation (Opus is overkill for fact-finding; save its judgment for synthesis).
+
+### When to spawn vs. do inline
+
+| Situation | Approach |
+|---|---|
+| "Find X in `<known-dir>`" | inline `Bash`/`Read` — one grep is faster than a subagent spawn |
+| "How does the auth middleware work?" (one focused dive) | inline `Read` after a quick `rg` |
+| "How do A, B, C currently work?" (3 independent axes) | spawn 3 `Explore` subagents in one message, parallel |
+| Unknown file location, broad naming variations | spawn one `Explore` with `breadth: very thorough` |
+| "Is library X still maintained, what's the current API, alternatives?" (multi-topic web) | spawn 2–3 `general-purpose` subagents in one message |
+| Question B depends on the answer to A | serialize — don't parallelize dependent queries |
+
+### How
+
+Single message, multiple `Agent` tool calls. For each:
+
+- `subagent_type`: `Explore` (code search) or `general-purpose` (web / multi-step)
+- `model`: `sonnet` — explicit, not inherited
+- `prompt`: self-contained brief (subagents don't see the conversation). Spell out the question, relevant background, and ask for a ≤200-word report. Be explicit that the work is read-only: *"research only, no edits"*.
+- `description`: 3–5 words for the activity log
+
+Synthesize the returned briefs yourself in chat — don't dump raw reports at the user.
+
+### Anti-patterns
+
+| Don't | Do |
+|---|---|
+| Spawn a subagent for a 30-second grep | Just grep |
+| Parallelize dependent queries | Serialize — the upstream answer reshapes the downstream question |
+| Use `model: opus` for read-only research | `sonnet` — reserve Opus for synthesis and judgment turns |
+| Let subagents Edit/Write/run destructive commands | Explicit "read-only" in the prompt; brainstorming forbids writes |
+| Spawn 5+ subagents "to be thorough" | If you can't name the question each one answers in one sentence, you don't need it |
 
 ## Proposing approaches
 
