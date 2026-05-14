@@ -1,6 +1,6 @@
 {
   "name": "oyster",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Brainstorming → spec → impl plan → test review → implementation → post-implementation review. Each planning phase has a human review gate with inline-comment HTML preview.",
   "author": {
     "name": "Oyster Lee",
