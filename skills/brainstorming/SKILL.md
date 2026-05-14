@@ -1,11 +1,11 @@
 ---
 name: brainstorming
-description: Interview the user toward an agreed plan before any non-trivial change (new feature, refactor across files, schema/API change, new dependency). Triggers on "plan this", "help me plan", "how should we approach", "what's the best way to", and before EnterPlanMode. Researches the codebase first, asks tradeoff/gotcha questions, runs a security pass, produces an HTML review.
+description: Interview the user toward an agreed approach (plus the reasoning behind every load-bearing decision) before any non-trivial change. Triggers on "plan this", "help me plan", "how should we approach", "what's the best way to", and before EnterPlanMode. Researches the codebase first, probes every fork for "why A, not B", runs a security pass, produces a lean HTML review for teammate sign-off.
 ---
 
 # Brainstorming
 
-A relentless design interview. The output is a concrete plan the user has explicitly signed off on — not a vibe, not a sketch.
+A relentless design interview. The output is a concrete **approach** — plus the reasoning behind every load-bearing decision — that a teammate can review without reading code.
 
 ## Operating rules
 
@@ -14,23 +14,28 @@ Non-negotiable. Violating any of them defeats the skill.
 1. **Research before asking.** Never ask the user something a 60-second grep, file read, or doc lookup can answer.
 2. **Batch independent questions; serialize dependent ones.** Use `AskUserQuestion` (1–4 items per call). A question pair is *dependent* if the answer to A would reshape what you'd ask for B — those go one at a time. *Independent* axes (e.g., auth model vs. storage backend vs. observability granularity) can be batched. When in doubt, serialize: a misplaced batch costs more than an over-cautious sequence.
 3. **Every question surfaces a tradeoff or a gotcha.** A question with no tradeoff wastes the user's turn — replace it with a recommendation and ask for objection.
-4. **Challenge initial thoughts reasonably.** If the user's stated approach has a clear weakness (perf, security, complexity, lock-in, ops cost), name it and propose the alternative. Then let them choose. Do not capitulate to be agreeable; do not argue past one round if they hold firm.
-5. **Security is a dedicated phase, not an afterthought.** No sign-off without it.
-6. **No implementation during brainstorm.** Read-only investigation only — no Edit or destructive Bash. The single permitted write is the final HTML review document (see [HTML review document](#html-review-document)).
+4. **Every decision has a "why".** For each load-bearing fork, capture *picked option*, *rejected option(s)*, and *one-line reason*. If the user can't articulate a reason, keep probing — "gut feel" is not a reason a teammate can review. Block sign-off until every decision has a non-empty "why".
+5. **Challenge initial thoughts reasonably.** If the user's stated approach has a clear weakness (perf, security, complexity, lock-in, ops cost), name it and propose the alternative. Then let them choose. Do not capitulate to be agreeable; do not argue past one round if they hold firm.
+6. **Security is a dedicated phase, not an afterthought.** No sign-off without it.
+7. **The HTML is approach-only — no code or file references.** No paths, no function names, no concrete schema fields. Talk in surfaces ("auth layer", "forward worker"), roles, and behaviors. Concrete files/types/codes are spec-writing's job. The HTML must be reviewable by a teammate who has not opened the repo.
+8. **Keep it lean.** The HTML is for review, not documentation. Prefer one tight sentence over a paragraph; prefer a table row over a sub-section. If a teammate would skim past it, cut it.
+9. **No implementation during brainstorm.** Read-only investigation only — no Edit or destructive Bash. The single permitted write is the final HTML review document (see [HTML review document](#html-review-document)).
 
 ## Workflow checklist
 
 Drive this with TodoWrite — one todo per item. Mark each complete as you go.
 
 - [ ] **Restate the goal in one sentence.** Get the user to confirm before research. Catches misunderstandings cheaply.
-- [ ] **Research the codebase.** Grep/read relevant files: existing patterns, the module that will change, similar features already shipped, the data model, the auth layer. Note conflicts between user's framing and what the code actually does.
+- [ ] **Research the codebase.** Grep/read relevant files: existing patterns, the module that will change, similar features already shipped, the data model, the auth layer. Note conflicts between user's framing and what the code actually does. *This research informs your interview — it does not appear in the HTML.*
 - [ ] **Research external context if libraries/APIs are involved.** Use `mcp__context7__resolve-library-id` + `mcp__context7__query-docs` for library docs, or WebFetch for specific URLs. Skip if pure internal logic.
-- [ ] **Summarize findings.** 3–6 bullets: what exists, what's missing, what surprised you, conflicts with the user's framing. Surface the riskiest unknown — that's where the interview starts.
-- [ ] **Sketch mockup directions (UI only).** If the change introduces new visual surface (screen, page, modal, prominent component), propose 2–4 named layout directions with ASCII previews in a single `AskUserQuestion`. The pick frames the rest of the interview. See [UI mockup sampling](#ui-mockup-sampling). Skip for pure backend/schema/infra/refactor/copy work.
-- [ ] **Interview loop.** Batch independent questions, serialize dependent ones (see operating rule #2). Continue until the plan answers: *which files change, what contracts/types, what data flow, what failure modes, what's explicitly out of scope*. See [Question patterns](#question-patterns) below.
-- [ ] **Challenge the initial approach at least once** if a credible better path exists. Cite the specific weakness. If the user holds firm after your reasoning, accept and move on.
-- [ ] **Security pass.** Read [references/security-checklist.md](references/security-checklist.md) and walk the relevant items with the user. Mandatory — do not skip even when the change "feels" non-security.
-- [ ] **Synthesize the plan in chat.** Format: *Goal · Files to touch · Data/contract changes · Execution order · Out of scope · Open risks*. Keep iterating with the user until they signal agreement.
+- [ ] **Summarize findings (chat only).** 3–6 bullets: what exists, what's missing, what surprised you, conflicts with the user's framing. Surface the riskiest unknown — that's where the interview starts.
+- [ ] **Sketch mockup directions (UI only).** If the change introduces new visual surface (screen, page, modal, prominent component), propose 2–4 named layout directions with ASCII previews in a single `AskUserQuestion`. The pick frames the rest of the interview *and* becomes a decision row. See [UI mockup sampling](#ui-mockup-sampling). Skip for pure backend/schema/infra/refactor/copy work.
+- [ ] **Interview loop.** Batch independent questions, serialize dependent ones (see operating rule #2). Continue until the plan answers: *what's the context, what's the approach, what are the load-bearing decisions and why each was picked, what compromises are accepted, what's out of scope, what's still unresolved.* See [Question patterns](#question-patterns) below.
+- [ ] **Probe every decision for "why".** As decisions surface during the interview, log each one with `picked / rejected / why`. If a "why" is "user said so" or "gut feel", that's a flag to probe — ask for the underlying reason (perf, simplicity, lock-in concern, team familiarity, deadline pressure, etc.). A teammate reviewing the HTML wants the reason, not the verdict.
+- [ ] **Challenge the initial approach at least once** if a credible better path exists. Cite the specific weakness. If the user holds firm after your reasoning, accept and record their reason in the "why" column — that's exactly the kind of context a reviewer wants.
+- [ ] **Security pass.** Read [references/security-checklist.md](references/security-checklist.md) and walk the relevant items with the user. Mandatory — do not skip even when the change "feels" non-security. Output is one-line *Area · Decision* pairs; **no file paths or code references**.
+- [ ] **Synthesize the approach in chat.** Format: *Goal · Context · Approach · Decisions (Decision/Picked/Rejected/Why) · Tradeoffs · Open questions · Security*. Keep iterating with the user until they signal agreement. Talk in surfaces, not files.
+- [ ] **Verify "why" completeness.** Before offering sign-off, check every Decisions row has a non-empty *Why* (and that "why" is reviewable — i.e., a teammate could agree or push back on it). If any row is thin, loop back to the interview for that one decision.
 - [ ] **Offer the optional roast.** Ask: "Want me to roast this plan before sign-off? An adversarial pass over the whole plan, or just focus on one area (security / ops cost / simpler alternative)? Or skip." Three options surfaced; one-question turn. If they pick a focused angle, pass it to `roast-me` as scope. Surface its verdict, fold any worthwhile concerns into a brief revision pass. If they skip, move on. Skipping is fine — this is opt-in.
 - [ ] **Explicit sign-off in chat.** Ask: "Ready for me to write the review doc, or anything to revise first?" Wait for a clear yes.
 - [ ] **Write the HTML review document.** See [HTML review document](#html-review-document) below. This is a hard checkpoint — the user must review the HTML before spec writing begins.
@@ -41,23 +46,27 @@ Drive this with TodoWrite — one todo per item. Mark each complete as you go.
 
 ## Question patterns
 
-Every question must do one of these. If it doesn't, don't ask it.
+Every question must do one of these. If it doesn't, don't ask it. After every answer, capture the *why* — that's what a teammate reads first.
 
 ### Surface a tradeoff
 Frame as a fork with the cost of each branch named.
-> "Two ways to handle dedupe: (a) DB unique constraint — atomic but throws on race, must catch a specific Postgres error code; (b) advisory lock around the insert — cleaner error handling but serializes writes for that key. (a) is faster under low contention, (b) is friendlier if you'll do multi-row work in the same critical section. Which fits this flow?"
+> "Two ways to handle dedupe: (a) DB unique constraint — atomic but throws on race, must catch a specific error; (b) advisory lock around the insert — cleaner error handling but serializes writes for that key. (a) is faster under low contention, (b) is friendlier if you'll do multi-row work in the same critical section. Which fits this flow — and what's the deciding factor?"
 
 ### Surface a gotcha
 Name the trap before they step in it.
-> "If we forward by message ID and the source chat later deletes that message, Telegram returns 400 and our retry queue stalls. Want to (a) cache content at forward-time and re-send on failure, or (b) accept the loss and log? (a) is more work but keeps history intact."
+> "If we forward by message ID and the source chat later deletes that message, the upstream returns 400 and our retry queue stalls. Want to (a) cache content at forward-time and re-send on failure, or (b) accept the loss and log? (a) is more work but keeps history intact. What matters more here?"
 
 ### Challenge an assumption
 Quote what they said, then the weakness, then the alternative.
-> "You mentioned storing the API key on the SimCards row. That puts a secret in a record read across the worker and the API, and it'll surface in any debug log of that row. A `secrets` table with restricted reads, or vault/env, would be safer. Is there a reason row-level placement is intentional?"
+> "You mentioned storing the API key on the SIM record. That puts a secret in a row read across the worker and the API, and it'll surface in any debug log of that row. A secrets table with restricted reads, or vault/env, would be safer. Is there a reason row-level placement is intentional?"
 
 ### Force a scope decision
 When the user is conflating two features.
-> "What you're describing is really two changes: the forwarding pipeline AND the audit trail. They have different failure modes. Both in this PR, or land forwarding first and audit as a follow-up?"
+> "What you're describing is really two changes: the forwarding pipeline AND the audit trail. They have different failure modes. Both in this PR, or land forwarding first and audit as a follow-up — and why?"
+
+### Probe a thin "why"
+When the picked option is clear but the reason isn't.
+> "You picked the lock approach over the unique constraint. Is the reason: (a) it composes with future multi-row work in the same critical section, (b) the team is more comfortable debugging lock contention than catching specific error codes, or (c) something else? I want to put the actual reason in the decisions table so a reviewer knows what to push back on if they disagree."
 
 ## UI mockup sampling
 
@@ -84,11 +93,11 @@ Each option must include:
 
 Present them in a **single `AskUserQuestion`** call — `header: "Mockup"`, `multiSelect: false` (previews aren't supported for multi-select). Each option's `preview` = the ASCII, `description` = the tradeoff.
 
-After the pick: restate the choice in one sentence, then resume the interview with the chosen layout assumed (subsequent questions frame against it — *"in the split-pane variant, where does bulk-edit live?"*).
+After the pick: restate the choice in one sentence, then resume the interview with the chosen layout assumed (subsequent questions frame against it — *"in the split-pane variant, where does bulk-edit live?"*). Record the pick as a **Decisions** row — *Decision: Layout · Picked: split-pane · Rejected: compact table, card grid · Why: deep edit per item with few items in view at a time.*
 
 ### Higher-fidelity mockups
 
-ASCII is intentional — brainstorming is read-only and fast. If the user wants pixel-fidelity mockups, that's the `frontend-design` skill's job *after* spec sign-off. Note the deferral in `{{OUT_OF_SCOPE}}` or `{{EXECUTION_ORDER}}` so it's tracked.
+ASCII is intentional — brainstorming is read-only and fast. If the user wants pixel-fidelity mockups, that's the `frontend-design` skill's job *after* spec sign-off. Note the deferral in `{{TRADEOFFS}}` so it's tracked.
 
 ### Example sample set (settings page)
 
@@ -157,9 +166,9 @@ The comments file is at `<htmlpath>.comments.json`. For example, if the HTML is 
   "comments": [
     {
       "id": "cm1715539200abc",
-      "section": "Open risks",
-      "quote": "race condition on dedup",
-      "body": "this should be addressed in the spec, not deferred — call it out as a must-have AC",
+      "section": "Decisions",
+      "quote": "advisory lock",
+      "body": "the 'why' here is thin — is this about debugging ergonomics or composition with future multi-row work? worth tightening",
       "ts": "2026-05-13T19:30:00.000Z"
     }
   ]
@@ -182,7 +191,10 @@ Treat each comment as a revision request:
 |---|---|
 | "What do you think about X?" (no tradeoff) | "X vs Y — X is simpler, Y handles concurrent writes. Is concurrency a real concern here?" |
 | Batch dependent questions in one turn | Ask the upstream one first — the answer will reshape the rest. Independent axes (auth model AND storage backend AND observability) are fine to batch up to 4 at a time. |
-| Accept "let's just do it the simple way" without naming what gets deferred | "OK — simple way means no idempotency key. If the worker retries we'll double-send. Acceptable for now?" |
+| Accept "let's just do it the simple way" without naming what gets deferred | "OK — simple way means no idempotency key. If the worker retries we'll double-send. Acceptable for now? I'll log that tradeoff." |
+| Record a decision with empty or vague "why" ("user picked it", "gut feel") | Probe for the underlying reason — perf, simplicity, lock-in, deadline, team familiarity. If after probing the only honest "why" is "we don't know yet", surface that as an Open question instead of a Decision. |
+| Reference file paths, function names, or types in the HTML | Talk in surfaces and roles ("forward worker", "auth layer"). Concrete files/types live in spec-writing. |
+| Long prose sections in the HTML | One paragraph max per section. A reviewer skims; lean wins. |
 | Skip security because "it's just a UI change" | UI changes touch input handling, authz, CSRF surface. Run the pass. |
 | Scatter scratch plans across random files | Iterate in chat. The ONE permitted artifact is the final HTML review doc — written only after sign-off, only to `<cwd>/docs/brainstorming/`. |
 
@@ -204,18 +216,19 @@ After sign-off in chat, write a single HTML file the user can open in a browser 
 
 ### Placeholder contract
 
+The HTML is **approach-only**: no file paths, no function names, no concrete types or status codes. Every section earns its space — if it would be a yawn for a reviewer, cut it.
+
 | Token | Content | Format |
 |---|---|---|
 | `{{TITLE}}` | Short title for the change | Plain text, ~3–8 words |
 | `{{DATE}}` | Today's date | `YYYY-MM-DD` |
 | `{{GOAL}}` | One-sentence goal the user confirmed | Plain text |
-| `{{FLOW}}` | Primary diagram(s) for how the change behaves at runtime | One or more `<div class="diagram"><pre class="mermaid">…</pre></div>` blocks, optionally followed by `<p class="caption">…</p>`. See [Diagrams](#diagrams). If no flow makes sense (pure config/refactor), use `<p>No new runtime flow — refactor of existing behavior. See <a href="#files">Files to touch</a>.</p>` |
-| `{{FILES}}` | Files to touch, grouped if useful | `<table>` with columns *File* and *Change* — wrap paths in `<code>` |
-| `{{DATA_CHANGES}}` | Schema, DTO, API contract changes | `<ul>` or `<table>`. If schema is non-trivial, include an `erDiagram` mermaid block. Use `<p>None.</p>` if truly nothing changes. |
-| `{{EXECUTION_ORDER}}` | Numbered build sequence | `<ol>` |
-| `{{OUT_OF_SCOPE}}` | What is explicitly NOT in this change | `<ul>` |
-| `{{OPEN_RISKS}}` | Unresolved risks, deferred mitigations from the security pass | One `<li>` per risk — already wrapped in `<ul class="risks">` by the template |
-| `{{SECURITY_SUMMARY}}` | One-line-per-section summary of the security pass | `<table>` with columns *Area*, *Decision*. Use "N/A — <reason>" for sections that didn't apply |
+| `{{CONTEXT}}` | Why this matters *now* — the trigger, the pain, the constraint | 2–4 short `<li>` bullets or up to 2 short `<p>` sentences. No history dumps. |
+| `{{APPROACH}}` | The approach in one paragraph: how the design behaves, in surfaces and roles. Optionally followed by ONE diagram if behavior is genuinely non-obvious. | `<p>…</p>` followed optionally by one `<div class="diagram"><pre class="mermaid">…</pre></div>`. See [Diagrams](#diagrams). Skip the diagram if a sentence is clearer. |
+| `{{DECISIONS}}` | The **Why-A-not-B** table — every load-bearing fork the design closed on | `<table>` with columns *Decision*, *Picked*, *Rejected*, *Why*. Every row's *Why* must be non-empty and reviewable (a teammate could agree or push back on it). 2–6 rows typical; if you have more than 8, you're probably listing minor choices — fold them in. |
+| `{{TRADEOFFS}}` | Compromises we accept + things explicitly out of scope, in one list | `<ul>` — each `<li>` names what's given up *and why we're OK with it now*. Prefix with `<strong>OUT:</strong>` for out-of-scope items, `<strong>ACCEPT:</strong>` for accepted compromises. |
+| `{{OPEN_QUESTIONS}}` | Things still unresolved that a teammate should weigh in on | One `<li>` per question — already wrapped in `<ul class="risks">` by the template. End each with the question shape: *"…?"* |
+| `{{SECURITY_SUMMARY}}` | One-line-per-area decision from the security pass — **no file paths or code references** | `<table>` with columns *Area*, *Decision*. Use "N/A — <reason>" for areas that didn't apply |
 | `{{CHANGELOG_ROWS}}` | One `<tr>` per revision, newest at top | See [Changelog](#changelog) below |
 
 ### Changelog
@@ -231,7 +244,7 @@ The template includes a collapsible **Changelog** block in the header. It's the 
 **On every revision** — read the existing file, prepend a row, write the updated file back:
 
 ```html
-<tr><td><time>YYYY-MM-DD HH:MM</time></td><td>Switched dedup to advisory lock per comment on Open risks</td></tr>
+<tr><td><time>YYYY-MM-DD HH:MM</time></td><td>Switched dedup to advisory lock per comment on Decisions</td></tr>
 <tr><td><time>YYYY-MM-DD HH:MM</time></td><td>Initial draft</td></tr>
 ```
 
@@ -243,7 +256,9 @@ Rules:
 
 ### Diagrams
 
-The template ships with Mermaid configured for dark mode. Drop diagrams wherever they aid understanding — always wrapped as:
+Diagrams are optional — only include one in `{{APPROACH}}` if a sentence can't convey the behavior. A diagram that mostly restates the paragraph is noise.
+
+Wrap as:
 
 ```html
 <div class="diagram"><pre class="mermaid">
@@ -252,46 +267,44 @@ The template ships with Mermaid configured for dark mode. Drop diagrams wherever
 <p class="caption">Optional caption.</p>
 ```
 
-Pick the diagram type by what the section is communicating:
+Pick the type by what you're communicating:
 
-| Section | Default diagram | When to use |
-|---|---|---|
-| `{{FLOW}}` | `sequenceDiagram` | Request/response, async pipelines, message passing, auth handshakes, webhook flows |
-| `{{FLOW}}` | `flowchart TD` | Decision logic, state transitions, branching workflows, validation paths |
-| `{{FLOW}}` | `stateDiagram-v2` | Entity lifecycle with discrete states (job status, subscription state) |
-| `{{DATA_CHANGES}}` | `erDiagram` | New tables, new relationships, foreign key changes |
-| `{{DATA_CHANGES}}` | `classDiagram` | DTO/interface shapes when ERD doesn't fit (NoSQL, API contracts) |
+| Default diagram | When to use |
+|---|---|
+| `sequenceDiagram` | Request/response, async pipelines, message passing, auth handshakes, webhook flows |
+| `flowchart TD` | Decision logic, state transitions, branching workflows, validation paths |
+| `stateDiagram-v2` | Entity lifecycle with discrete states (job status, subscription state) |
 
 Diagram authoring rules:
 
+- **Surfaces, not files.** Participants are roles ("API", "Worker", "Queue") — never file paths or class names.
+- **No status codes, no concrete error names.** Label arrows with the verb (`enqueue`, `forward`, `retry on failure`), not `POST /v1/forward → 422 ALREADY_ENABLED`. That's spec-writing territory.
 - Prefer one **clear** diagram over three rough ones. If you'd need to label half the arrows "(maybe)", you're not ready — go back to the interview.
-- Keep each diagram under ~15 nodes. If it's bigger, split by phase or zoom level.
-- Label every arrow with the verb (`POST /messages`, `enqueue`, `emits event`). Unlabeled arrows are noise.
-- For ERDs, only show columns that matter for the change. Don't dump every column.
+- Keep it under ~12 nodes. If it's bigger, the approach is probably two changes wearing one coat — go back to scope.
 - Do NOT use mermaid `click` handlers, embedded HTML, or external image refs — `securityLevel: "strict"` blocks them.
 
-Example sequence diagram for a webhook flow:
+Example for a webhook-driven forward pipeline:
 
 ```html
 <div class="diagram"><pre class="mermaid">
 sequenceDiagram
   autonumber
-  participant TG as Telegram
+  participant Src as Source
   participant API as API
   participant Q as Queue
   participant W as Worker
-  TG->>API: POST /webhook (message)
+  Src->>API: incoming message
   API->>API: verify signature
-  API->>Q: enqueue forward job
-  API-->>TG: 200 OK
+  API->>Q: enqueue forward
+  API-->>Src: ack
   Q->>W: dequeue
-  W->>TG: sendMessage (forward)
-  alt source deleted
-    TG-->>W: 400 message not found
+  W->>Src: forward
+  alt source no longer reachable
+    Src-->>W: not-found
     W->>W: log + drop (per plan)
   end
 </pre></div>
-<p class="caption">Forward pipeline: API responds to TG immediately, worker handles delivery async.</p>
+<p class="caption">API acks immediately; worker handles delivery async, drops on irrecoverable source error.</p>
 ```
 
 ### After writing

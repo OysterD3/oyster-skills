@@ -8,7 +8,7 @@ For each item: name the threat, name the mitigation, decide who's responsible (t
 
 1. Skim every section header. Mark each "applies" / "N/A — because…". A header marked N/A without a reason is a hole.
 2. For applicable sections, walk the items as questions to the user — one or a tight cluster at a time.
-3. If any answer is "we'll handle that later," capture it in the plan's **Open risks** section.
+3. If any answer is "we'll handle that later," capture it in the plan's **Open questions** section with a residual-risk note.
 4. Block sign-off if any **must-not-defer** item below is unresolved.
 
 ## Must-not-defer items

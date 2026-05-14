@@ -21,9 +21,9 @@ The spec is the engineering contract. After this is signed off, implementation s
 Drive this with TodoWrite — one todo per item.
 
 - [ ] **Locate brainstorming input.** Look in `<cwd>/docs/brainstorming/` for the latest HTML. Confirm with user: "Using `<filename>` as the source. Right one?" If none exists, see [No brainstorming artifact](#no-brainstorming-artifact).
-- [ ] **Parse brainstorming.** Extract: Goal, Files to touch, Data/contract changes, Execution order, Out of scope, Open risks, Security pass decisions. Note any `OPEN_QUESTION` markers or deferred items.
-- [ ] **Read the relevant code.** Even though brainstorming already researched, re-open the files that will change — types, function signatures, existing error shapes — so the spec is grounded in actual code, not paraphrase.
-- [ ] **Draft the spec internally.** Map brainstorming → spec sections per the [Mapping](#brainstorming--spec-mapping) below. Identify gaps.
+- [ ] **Parse brainstorming.** Extract: Goal, Context, Approach (and any diagram), Decisions (Decision/Picked/Rejected/Why rows), Tradeoffs & out-of-scope, Open questions, Security pass decisions. Brainstorming is **approach-only** — it does NOT include file paths, concrete types, or status codes. Deriving those is *this* skill's job.
+- [ ] **Read the relevant code.** This is where you ground the approach in reality — open the modules implied by the Approach: existing types, function signatures, error shapes, similar features already shipped. The list of files to touch and the concrete contract shape are produced *here*, not inherited from brainstorming.
+- [ ] **Draft the spec internally.** Map brainstorming → spec sections per the [Mapping](#brainstorming--spec-mapping) below. Identify gaps that need narrow clarifying questions.
 - [ ] **Ask narrow clarifying questions** for legitimate spec-level gaps. ONE at a time. See [Question scope](#question-scope). If there are none, skip this step.
 - [ ] **Self-review.** Read [references/self-review-checklist.md](references/self-review-checklist.md) and run both passes. Output the review report in chat (the user benefits from seeing the rigor). Fix issues and re-run until clean.
 - [ ] **Render HTML** to `<cwd>/docs/specs/<YYYY-MM-DD>-<slug>.html` using `assets/spec-template.html`. Same slug as the brainstorming file when continuing the same thread; otherwise derive from the goal.
@@ -69,19 +69,22 @@ If you find yourself wanting to ask a not-allowed question, instead: include a s
 
 ## Brainstorming → spec mapping
 
+Brainstorming gives you the **approach** (and the reasoning behind it). The spec adds the **implementation contract** (files, types, codes, observability). Map sections like this:
+
 | Brainstorming section | Spec section(s) |
 |---|---|
 | Goal | **Goal** (verbatim or tightened) |
-| Flow diagram | **Behavior** (same or refined diagram) |
-| Files to touch | **Implementation notes** (file-by-file change summary) |
-| Data &amp; contract changes | **API contracts** + **Data model** (split: contracts go to API section, schema to Data model) |
-| Execution order | **Rollout** (sequencing, migration order, feature flags) |
-| Out of scope | **Out of scope** (verbatim) |
-| Open risks | **Error handling** if technical, **Open questions** if unresolved |
-| Security pass decisions | **Security** (each item becomes a concrete, testable requirement) |
+| Context | Folds into **Goal** preamble or **Implementation notes** opening — don't lose the "why now" framing |
+| Approach (prose + optional diagram) | **Behavior** — refine the diagram with concrete endpoints, error names, state labels |
+| Decisions (Decision/Picked/Rejected/Why) | The *Picked* option drives **API contracts**, **Data model**, **Error handling**, **Rollout**, or **Security** depending on what the decision is about. The *Why* should remain visible — preserve it inline as a short rationale note where the decision lands. Don't silently drop a rejected option without trace. |
+| Tradeoffs &amp; out of scope | OUT items → spec **Out of scope** (verbatim or near). ACCEPT items → **Implementation notes** as documented compromises, with the brainstorming "why" preserved. |
+| Open questions | If you've resolved one during code reading or clarifying questions → it becomes part of **Behavior**/**Error handling**/etc. Unresolved → spec **Open questions** with residual-risk note. |
+| Security pass decisions | **Security** (each row becomes a concrete, testable requirement) |
 | Security: deferred items | **Open questions** with explicit residual-risk note |
 
-**Acceptance criteria** is new in the spec — derive from the goal + out-of-scope. Each one must be observable and testable.
+**Files to touch, exact types, status codes, validation bounds** are NOT in brainstorming — derive them yourself from code reading + Decisions. They live in **Implementation notes**, **API contracts**, **Data model**, and **Error handling** respectively.
+
+**Acceptance criteria** is also new in the spec — derive from the goal + out-of-scope. Each one must be observable and testable.
 
 ## Self-review
 
