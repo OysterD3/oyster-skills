@@ -37,7 +37,8 @@ Drive with TodoWrite — one todo per item.
 - [ ] **Parse the test review.** Map each impl-plan step to its expanded per-step test entries — these go into the subagent prompt.
 - [ ] **Compute waves.** Build the DAG; group into topological waves. Display the wave plan to the user as a Mermaid `flowchart TD` in chat so they see what's parallel.
 - [ ] **Run pre-flight checks** from the impl plan (branch state, env vars, dependencies installed, feature flag created). Block on any failure.
-- [ ] **Initialize the consolidated worktree.** Run `bash ~/.claude/skills/implementation/scripts/worktree.sh init <plan-slug>` — creates `<repo>/.worktrees/<plan>/main` on branch `impl/<plan>/main`, saves `BASE_REF`, ensures `.worktrees/` is in `.gitignore`. The script prints the consolidated path on stdout — remember it; you'll point the user there at hand-off. See [Worktree management](#worktree-management).
+- [ ] **Detect the worktree environment.** Run `bash ~/.claude/skills/implementation/scripts/worktree.sh check-env` and parse the `recommended=` line. `proceed` → continue. `cd-to-repo-root` → stop and ask the user to `cd` out of the existing worktree. `ask-user` → confirm whether to `cd` to the common dir or nest. `not-a-repo` → stop. See [references/worktrees.md](references/worktrees.md#step-0--detect-the-environment-before-any-worktree-creation).
+- [ ] **Initialize the consolidated worktree.** Run `bash ~/.claude/skills/implementation/scripts/worktree.sh init <plan-slug>` — creates `<repo>/.worktrees/<plan>/main` on branch `impl/<plan>/main`, saves `BASE_REF`, ensures `.worktrees/` is in `.gitignore`. The script prints the consolidated path on stdout — capture it. See [references/worktrees.md](references/worktrees.md).
 - [ ] **For each wave** (see [Wave execution](#wave-execution)):
   - Create a step worktree per step (`worktree.sh setup <plan> <num> <slug>` — forks from the consolidated tip). Dispatch parallel subagents (max 3 concurrent — see [Concurrency](#concurrency)).
   - Collect results.
@@ -112,30 +113,23 @@ After all agents in the wave succeed and their diffs are applied:
 
 ## Worktree management
 
-All worktree lifecycle goes through one script: `scripts/worktree.sh` (ships with this skill). Always invoke it via `bash ~/.claude/skills/implementation/scripts/worktree.sh <command>` so it works regardless of the user's `PATH`.
+All lifecycle goes through `bash ~/.claude/skills/implementation/scripts/worktree.sh <command>` — never hand-roll `git worktree`. Full architecture, Step 0 detection, subcommand reference, failure modes, and anti-patterns in [references/worktrees.md](references/worktrees.md).
 
-**Architecture:**
-- The user's main checkout is never touched during the run.
-- The **consolidated** worktree at `<repo>/.worktrees/<plan>/main` (branch `impl/<plan>/main`) collects every step's changes via per-step commits. At hand-off, `finalize` resets it `--soft` to the saved `BASE_REF` so the user sees a single staged diff.
-- Each parallel subagent gets its own **step** worktree at `<repo>/.worktrees/<plan>/step-<N>-<slug>` (branch `impl/<plan>/step-<N>-<slug>`), forked from the consolidated tip at the moment of `setup`.
+Subcommand cheat sheet:
 
-**Naming conventions** (the script enforces these):
-- `<plan-slug>` is the impl plan's MD slug (e.g. `auth-refresh-hardening`).
-- `<slug>` is a 2–4 word kebab-case summary of the step (e.g. `add-migration`).
+| Command | When |
+|---|---|
+| `init <plan>` | Once before wave 0 |
+| `setup <plan> <num> <slug>` | Before each `Agent` dispatch |
+| `apply <plan> <num> <slug>` | After agent `STATUS: success` |
+| `cleanup <plan> <num> <slug>` | After `apply` succeeds |
+| `cleanup-steps <plan>` | Before `finalize` at hand-off |
+| `finalize <plan>` | At hand-off; collapses per-step commits to a single staged diff |
+| `teardown <plan>` | When user is done (after merge) |
 
-**Subcommands** (full reference in the script's `usage`):
+**Tell the user once at the start:** "Implementation work happens in a dedicated worktree at `.worktrees/<plan>/main` so your main checkout stays clean. You'll see per-step commits there during the run; at hand-off I'll collapse them back to a single staged diff for you to review and commit. `.worktrees/` is auto-added to `.gitignore`."
 
-| Command | When to run | What it does |
-|---|---|---|
-| `init <plan>` | Once, after pre-flight passes, before wave 0 | Creates the consolidated worktree + branch, saves `BASE_REF`, ensures `.worktrees/` is in `.gitignore`. Idempotent. Prints the consolidated path on stdout. |
-| `setup <plan> <num> <slug>` | Per step, just before its `Agent` dispatch | Forks a step worktree + branch from the consolidated tip. Prints the path on stdout — capture it for `{{WORKTREE_PATH}}`. |
-| `apply <plan> <num> <slug>` | After an agent reports `STATUS: success` | Captures the step worktree's diff and applies + commits it into the consolidated as `step <N>: <slug>`. No-op if the step produced no diff. |
-| `cleanup <plan> <num> <slug>` | After `apply` succeeds | Removes one step worktree + its branch. The consolidated stays. |
-| `cleanup-steps <plan>` | Before `finalize` at hand-off | Sweeps any leftover step worktrees + branches. The consolidated stays. |
-| `finalize <plan>` | At hand-off, after `cleanup-steps` | Inside the consolidated worktree, `git reset --soft <BASE_REF>` to collapse every `step N: …` commit back to a single staged diff. Prints the consolidated path on stdout. |
-| `teardown <plan>` | When the user is done with the consolidated worktree (after they've merged) | Full nuke: removes the consolidated worktree + every `impl/<plan>/*` branch + the `.worktrees/<plan>/` directory. |
-
-**Tell the user once, at the start of the run:** "Implementation work happens in a dedicated worktree at `.worktrees/<plan>/main` so your main checkout stays clean. You'll see per-step commits there during the run; at hand-off I'll collapse them back to a single staged diff for you to review and commit. `.worktrees/` is auto-added to `.gitignore`."
+**Don't pass `isolation: "worktree"` to `Agent`** — we own the worktree tree. The script's paths are inspectable; harness-managed worktrees are not. (See [references/worktrees.md](references/worktrees.md#step-0--detect-the-environment-before-any-worktree-creation).)
 
 ## Concurrency
 
