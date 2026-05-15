@@ -24,6 +24,33 @@ Approach inspired by [obra/superpowers `using-git-worktrees`](https://github.com
 
 All lifecycle goes through one script: `bash ~/.claude/skills/implementation/scripts/worktree.sh <command>`. Never hand-roll `git worktree` commands inline.
 
+## Consent
+
+Worktree isolation is **opt-in by confirmation**, not silent. Before creating anything:
+
+1. **Check for a stated preference.** If the user's message or the project CLAUDE.md already says "use a worktree" / "don't use a worktree" / "work in place", honor it without asking.
+2. **Otherwise ask** (one `AskUserQuestion`, after `check-env` says the environment is usable):
+   - **Isolated worktrees (recommended)** — parallel waves, the main checkout is never touched, one clean staged diff at hand-off.
+   - **Work in place** — serial execution in the main checkout; changes land directly in the working tree as staged edits (still never committed); no parallelism.
+
+This matters more for our skill than for single-feature isolation: declining worktrees also disables parallel waves (concurrent agents in one checkout would collide). Make that trade-off explicit in the question.
+
+## No-worktree fallback
+
+When the user declines worktrees, the execution model changes:
+
+- **No `.worktrees/` tree.** Skip every `worktree.sh` call (`init`, `setup`, `apply`, `cleanup`, `cleanup-steps`, `finalize`, `teardown`). None of them run.
+- **No parallelism.** Waves collapse to a flat, dependency-ordered list. Run steps strictly serially.
+- **Orchestrator-executed, not subagent-dispatched.** Parallel step worktrees were the only reason to fan out to subagents. In-place, the orchestrator performs each step itself, in the main checkout, in dependency order.
+- **Per-step gate, not per-wave.** Pause for the user after every step (there are no waves to batch).
+- **Staging unchanged.** Still `git add` only; never `git commit`. The user reviews the accumulated staged diff in their own working tree and commits at their pace.
+- **No finalize/collapse.** Changes are already a single staged diff in the working tree — there are no per-step commits to squash.
+- **Sandbox note.** If `check-env` / `init` would have failed on a permission-denied `git worktree add` (containerized harness), the no-worktree path is also the natural fallback — surface it as the recommended option in that case.
+
+Tell the user once, at the start of an in-place run:
+
+> Working in your main checkout (no worktree isolation). Steps run serially; changes accumulate as staged edits in your working tree — I never commit. Review the staged diff and commit when you're ready.
+
 ## Gitignored file symlinks
 
 A fresh worktree only contains tracked files — so `.env`, `node_modules`, build caches, and IDE configs are missing. Running `npm install` (or copying credentials) in every worktree would be wasteful, especially for parallel step worktrees.
@@ -120,6 +147,8 @@ Full reference lives in the script's `usage`. Quick map:
 
 | Situation | Action |
 |---|---|
+| No stated worktree preference | Ask: isolated worktrees (recommended) vs. work in place |
+| User declines worktrees / says "work in place" | Serial in-place execution — see [No-worktree fallback](#no-worktree-fallback); skip all `worktree.sh` calls |
 | Already inside one of our `.worktrees/<plan>/` paths | `cd` back to repo root and re-run |
 | Inside an unrelated worktree | Ask user: `cd` to common dir, or nest? Default: `cd` |
 | Inside a submodule | Proceed as normal repo |
