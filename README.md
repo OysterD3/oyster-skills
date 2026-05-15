@@ -24,6 +24,7 @@ Each link reads the prior artifact, asks narrow clarifying questions, runs a sel
 | `test-review` | "review the tests", "audit tests in X" | `docs/test-reviews/<date>-<slug>.{html,md}` |
 | `implementation` | "let's implement", "execute the plan" | Staged git diff (never commits) |
 | `post-implementation-review` | "review the code", "final review before commit" | Inline chat — code review → simplify → security |
+| `brainstorming-deck` | "make a deck", "turn this brainstorm into slides" | `docs/brainstorming/<date>-<slug>.pptx` (delegates to Anthropic's `pptx` skill) |
 
 ## Install
 
