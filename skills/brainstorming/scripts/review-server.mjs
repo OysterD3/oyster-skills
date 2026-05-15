@@ -21,8 +21,6 @@ import path from 'node:path';
 
 const PORT = parseInt(process.env.REVIEW_PORT || '7681', 10);
 const ROOT = process.cwd();
-// Skill assets root: ~/.claude/skills/ (this file lives at .../skills/brainstorming/scripts/review-server.mjs)
-const SKILLS_ROOT = path.resolve(new URL('../../', import.meta.url).pathname);
 const PID_FILE = process.env.REVIEW_PID_FILE || path.join('/tmp', `claude-review-server-${Buffer.from(ROOT).toString('hex').slice(0, 16)}.pid`);
 
 const MIME = {
@@ -120,28 +118,6 @@ const server = http.createServer(async (req, res) => {
       }
 
       return sendJson(res, 405, { error: 'method not allowed' });
-    }
-
-    // Shell assets: /__shell/<skill>/<file> → ~/.claude/skills/<skill>/assets/<file>
-    if (url.pathname.startsWith('/__shell/')) {
-      const rel = url.pathname.slice('/__shell/'.length);
-      const segs = rel.split('/').filter(Boolean);
-      if (segs.length < 2) return sendJson(res, 400, { error: 'invalid shell path' });
-      const [skill, ...rest] = segs;
-      if (!/^[a-z0-9_-]+$/i.test(skill)) return sendJson(res, 400, { error: 'invalid skill name' });
-      const file = rest.join('/');
-      if (file.includes('..') || file.startsWith('/')) return sendJson(res, 403, { error: 'forbidden' });
-      const abs = path.normalize(path.join(SKILLS_ROOT, skill, 'assets', file));
-      const expectedPrefix = path.normalize(path.join(SKILLS_ROOT, skill, 'assets')) + path.sep;
-      if (!abs.startsWith(expectedPrefix)) return sendJson(res, 403, { error: 'forbidden' });
-      try {
-        const content = await fs.readFile(abs);
-        const ct = MIME[path.extname(abs).toLowerCase()] || 'application/octet-stream';
-        res.writeHead(200, { 'content-type': ct, 'cache-control': 'public, max-age=300' });
-        return res.end(content);
-      } catch {
-        return sendJson(res, 404, { error: 'shell asset not found', path: rel });
-      }
     }
 
     // Static file serving

@@ -5,21 +5,29 @@ description: Interview the user toward an agreed approach (plus the reasoning be
 
 # Brainstorming
 
-A relentless design interview. The output is a concrete **approach** — plus the reasoning behind every load-bearing decision — that a teammate can review without reading code.
+A relentless design interview. The output is a concrete **approach** plus the reasoning behind every load-bearing decision — reviewable by a teammate who hasn't opened the repo.
+
+## TL;DR
+
+- **Goal:** drive the user to an agreed approach with `picked / rejected / why` captured for every fork.
+- **Output:** one self-contained HTML artifact in `docs/brainstorming/` — no code or file references inside.
+- **Flow:** research → propose 2–3 approaches → interview → security pass → sign-off → bake artifact.
+- **Hard invariant:** every Decisions row has a non-empty *Why*. Block sign-off otherwise.
+- **No code edits.** Only write the artifact JSON; the bake script produces the HTML.
 
 ## Operating rules
 
-Non-negotiable. Violating any of them defeats the skill.
+Non-negotiable.
 
-1. **Research before asking.** Never ask the user something a 60-second grep, file read, or doc lookup can answer.
-2. **Batch independent questions; serialize dependent ones.** Use `AskUserQuestion` (1–4 items per call). A pair is *dependent* if the answer to A would reshape what you'd ask for B — those go one at a time. Independent axes (auth model vs. storage backend vs. observability granularity) can be batched. When in doubt, serialize.
-3. **Every question surfaces a tradeoff or a gotcha.** A question with no tradeoff wastes the user's turn — replace it with a recommendation and ask for objection.
-4. **Every decision has a "why".** For each load-bearing fork, capture *picked option*, *rejected option(s)*, and *one-line reason*. If the user can't articulate a reason, keep probing — "gut feel" is not a reason a teammate can review. Block sign-off until every decision has a non-empty "why".
-5. **Challenge initial thoughts reasonably.** If the user's stated approach has a clear weakness (perf, security, complexity, lock-in, ops cost), name it and propose the alternative. Then let them choose. Don't argue past one round if they hold firm.
-6. **Security is a dedicated phase, not an afterthought.** No sign-off without it.
-7. **The HTML is approach-only — no code or file references.** No paths, no function names, no concrete schema fields. Talk in surfaces ("auth layer", "ingest worker"), roles, and behaviors. Concrete files/types/codes are spec-writing's job. The HTML must be reviewable by a teammate who has not opened the repo.
-8. **Keep it lean.** The HTML is for review, not documentation. Prefer one tight sentence over a paragraph; prefer a table row over a sub-section. If a teammate would skim past it, cut it.
-9. **No implementation during brainstorm.** Read-only investigation only — no Edit or destructive Bash. The single permitted write is the final review artifact (see [references/review-artifact.md](references/review-artifact.md)).
+1. **Research before asking.** Don't ask what a 60-second grep, file read, or doc lookup can answer.
+2. **Batch independent; serialize dependent.** 1–4 questions per `AskUserQuestion`. Dependent = A's answer reshapes B → ask A alone. When in doubt, serialize.
+3. **Every question surfaces a tradeoff or gotcha.** No-tradeoff questions waste the user's turn — replace with a recommendation and ask for objection.
+4. **Every decision has a "why".** Picked + rejected + one-line reason. "Gut feel" → keep probing. Block sign-off if any *Why* is empty.
+5. **Challenge initial thoughts reasonably.** Name the weakness, propose the alternative, accept the user's call. One round max — no relitigation.
+6. **Security is a dedicated phase.** No sign-off without it.
+7. **HTML is approach-only — no code or file references.** Surfaces and roles only ("ingest worker", "auth layer"). Concrete files/types/codes belong in spec-writing.
+8. **Keep the HTML lean.** One paragraph max per section. If a teammate would skim past it, cut it.
+9. **No implementation during brainstorm.** Read-only. The only writes are the content JSON and the baked HTML (see [references/review-artifact.md](references/review-artifact.md)).
 
 ## Workflow checklist
 
@@ -43,53 +51,15 @@ Drive this with TodoWrite — one todo per item. Mark each complete as you go.
 - [ ] **Verify "why" completeness.** Before offering sign-off, check every Decisions row has a non-empty *Why* (reviewable — a teammate could agree or push back). If any row is thin, loop back for that one decision.
 - [ ] **Offer the optional roast.** Ask: "Want me to roast this plan before sign-off? An adversarial pass over the whole plan, or just focus on one area (security / ops cost / simpler alternative)? Or skip." If they pick a focused angle, pass it to `roast-me` as scope. Surface its verdict, fold any worthwhile concerns into a brief revision pass. Skipping is fine — this is opt-in.
 - [ ] **Explicit sign-off in chat.** Ask: "Ready for me to write the review doc, or anything to revise first?" Wait for a clear yes.
-- [ ] **Write the review artifact.** A small content JSON + a thin shell HTML — see [references/review-artifact.md](references/review-artifact.md). This is a hard checkpoint — the user must review before spec writing begins.
+- [ ] **Write the review artifact.** Write the content JSON, then run the bake script to produce a self-contained HTML — see [references/review-artifact.md](references/review-artifact.md). This is a hard checkpoint — the user must review before spec writing begins.
 - [ ] **Ensure `docs/` is gitignored** (one-time per project). If `.gitignore` doesn't list `docs/`, surface this to the user in one sentence: "Tip: add `docs/` to your `.gitignore` so brainstorming/spec/plan artifacts and inline-comment JSON files stay local." Do not auto-edit `.gitignore`.
-- [ ] **Start the review server** — required to view the artifact at all (shell HTML fetches content + CSS/JS from the server). See [Review server lifecycle](#review-server-lifecycle).
-- [ ] **Stop and hand off.** Tell the user the URL (`http://localhost:7681/docs/brainstorming/<file>.html`) — not the file path. Do not start spec writing or implementation until they return with "looks good, move on" (or revisions). For comment revisions, see [references/inline-comments.md](references/inline-comments.md).
+- [ ] **Start the review server** — only required for inline comments. The artifact HTML opens standalone in any browser (CSS/JS are baked in). Inline comments POST to `localhost:7681`; without the server they're disabled (a banner appears). See [Review server lifecycle](#review-server-lifecycle).
+- [ ] **Stop and hand off.** Tell the user the URL (`http://localhost:7681/docs/brainstorming/<file>.html`) or the local file path — both work. Do not start spec writing or implementation until they return with "looks good, move on" (or revisions). For comment revisions, see [references/inline-comments.md](references/inline-comments.md).
 - [ ] **Shut the review server down** when the user is moving on or approves the plan. See [Review server lifecycle](#review-server-lifecycle).
 
 ## Review server lifecycle
 
-The review server (`scripts/review-server.mjs`) does three jobs:
-
-1. **Serves the project tree** at `http://localhost:7681/` — the shell HTML and content JSON are both fetched from here.
-2. **Serves shell assets** at `/__shell/<skill>/<file>` — resolves to `<plugin>/skills/<skill>/assets/<file>`. The common CSS/JS live at `/__shell/_shared/shell.css` and `/__shell/_shared/shell.js`; per-skill extras (if any) live under the skill's own name. No copying into the project.
-3. **Persists inline comments** to `<htmlpath>.comments.json` via `/api/comments` (GET/POST).
-
-Without the server running, the shell HTML loads but can't fetch its content JSON or its CSS/JS — the page shows a banner and nothing else. The artifact is server-dependent by design (that's what makes revisions cheap).
-
-### Launching
-
-After writing the artifact (and before telling the user the URL), check whether the server is already up — only launch if it isn't.
-
-```bash
-curl -sf http://localhost:7681/api/health > /dev/null 2>&1 && echo "already running" || echo "needs start"
-```
-
-If `needs start`, launch in background with `Bash` (`run_in_background: true`):
-
-```bash
-node ~/.claude/skills/brainstorming/scripts/review-server.mjs
-```
-
-Then wait ~1 second and re-check health. If `already running`, skip the launch — reuse it.
-
-Give the user the URL, not the file path:
-
-> Review your plan at **http://localhost:7681/docs/brainstorming/2026-05-13-feature.html**. Select any text and click "💬 Comment" to leave inline feedback. When done, tell me "address the comments" or "looks good, move on".
-
-### Shutting down
-
-When the user signals they're done (approves the plan, says "move on", or you're handing off to the next skill), shut the server down:
-
-```bash
-curl -sf -X POST http://localhost:7681/api/shutdown > /dev/null
-```
-
-The server stays up until the skill explicitly shuts it down (or the user kills it). There is no idle auto-shutdown — running reviews shouldn't be killed mid-session just because the user stepped away.
-
-If the next skill (spec-writing) launches it again, that's a one-second cost — not worth optimizing for.
+The brainstorming artifact opens directly (CSS/JS baked in) — the review server is only needed for inline comments. Canonical lifecycle docs (launch, shutdown, cloudflared sharing) live in [_shared/references/review-server.md](../_shared/references/review-server.md).
 
 ## Anti-patterns
 
@@ -106,9 +76,9 @@ If the next skill (spec-writing) launches it again, that's a one-second cost —
 
 ## When to exit early
 
-Exit without completing the checklist only if:
+Exit before completing the checklist only if:
 
-- The user explicitly says "skip the interview, just do X" — but still run the security pass if the change touches auth, secrets, user input, or PII, and still produce the review artifact unless the user also says "and skip the review doc".
-- Research reveals the task is a pure lookup or trivial fix and the user agrees mid-stream. No artifact needed in this case.
+- User says "skip the interview, just do X" — still run security pass if the change touches auth/secrets/user-input/PII; still produce the artifact unless user also says "skip the review doc".
+- Research reveals the task is a pure lookup or trivial fix and the user agrees mid-stream — no artifact needed.
 
-In both cases, state explicitly that you're exiting brainstorm and why.
+State explicitly that you're exiting brainstorm and why.

@@ -5,7 +5,15 @@ description: Three-phase post-build review of staged or branch-relative diff. Ph
 
 # Post-implementation review
 
-The chain's quality gate after code is written. Three sequential phases on the working diff: code review (bugs/quality), simplify (reuse/over-engineering), security review (auth/inputs/secrets/etc.). Each phase reuses an existing skill or agent — this skill orchestrates, it doesn't reimplement.
+The chain's quality gate after code is written. Three sequential phases on the working diff; each reuses an existing skill or agent — this skill orchestrates, it doesn't reimplement.
+
+## TL;DR
+
+- **Three phases in order:** code review → simplify → security review.
+- **User gate between each phase.** Apply findings before the next phase runs.
+- **Delegate everything:** `feature-dev:code-reviewer`, then `simplify`, then `security-review`. No reimplementation.
+- **Never commits.** Changes stay staged.
+- **Stoppable:** "skip simplify" / "stop after code review" is fine.
 
 ## Operating rules
 

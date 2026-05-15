@@ -1,23 +1,18 @@
-// Shared review-doc shell — used by brainstorming, spec-writing,
-// impl-plan-writing, and test-review. Fetches <slug>.content.json, binds to the
-// DOM, then runs Mermaid, highlight.js, the TOC builder, and the inline-comment
-// system.
+// Shared review-doc shell runtime — inlined by gen-artifact.mjs into every
+// generated review HTML. Content is baked in at gen time (not fetched at
+// runtime), so this script handles only browser-side concerns:
 //
-// Per-skill differences live in each skill's own shell.html:
-//   - <title> drives the document-title suffix (e.g., "Engineering spec review")
-//   - section ids and headings
-//   - optional <link rel="stylesheet" href="/__shell/<skill>/shell.css"> extras
-//
-// Everything else is skill-agnostic — sections are discovered via data-bind /
-// data-bind-html attributes at runtime; JSON keys define which sections render.
+//   - Mermaid diagram rendering
+//   - highlight.js for code blocks
+//   - TOC build + scroll-spy
+//   - Semantic <strong>NEW/CHANGED/...</strong> tag pills
+//   - Inline-comment system (talks to the review server at /api/comments)
 
 import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
 import svgPanZoom from "https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/+esm";
 
 const FILE = location.pathname.replace(/^\//, '');
-const CONTENT_URL = FILE.replace(/\.html$/, '.content.json');
 const COMMENTS_API = `/api/comments?file=${encodeURIComponent(FILE)}`;
-const BASE_TITLE = document.title || 'Review';
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
@@ -38,42 +33,7 @@ function showBanner(text) {
   document.body.style.paddingTop = '44px';
 }
 
-// 1. Fetch content + bind
-async function loadContent() {
-  let data;
-  try {
-    const r = await fetch('/' + CONTENT_URL, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`content fetch returned ${r.status}`);
-    data = await r.json();
-  } catch (e) {
-    showBanner(`Content file not found: ${CONTENT_URL} — write it or run the review server.`);
-    return null;
-  }
-
-  if (data.title) {
-    document.title = `${data.title} — ${BASE_TITLE}`;
-  }
-  document.querySelectorAll('[data-bind]').forEach((el) => {
-    const key = el.dataset.bind;
-    if (data[key] != null) el.textContent = data[key];
-  });
-  document.querySelectorAll('[data-bind-html]').forEach((el) => {
-    const key = el.dataset.bindHtml;
-    if (data[key] != null) el.innerHTML = data[key];
-  });
-
-  // Changelog: array of {ts, note} → table rows
-  const changelogBody = document.getElementById('changelog-rows');
-  if (changelogBody && Array.isArray(data.changelog)) {
-    changelogBody.innerHTML = data.changelog
-      .map(row => `<tr><td><time>${esc(row.ts || '')}</time></td><td>${esc(row.note || '')}</td></tr>`)
-      .join('');
-  }
-
-  return data;
-}
-
-// 2. Mermaid
+// 1. Mermaid
 function initMermaid() {
   mermaid.initialize({
     startOnLoad: false,
@@ -447,26 +407,22 @@ function initComments(serverOk) {
   };
 }
 
-// Boot
+// Boot — content is already in the DOM (baked at gen time). Just run the
+// browser-side enhancements, then check the review server for comments.
 (async function boot() {
   initMermaid();
+  await renderMermaid();
+  await loadHighlightJs();
+  runHljs();
+  applyTagPills();
+  buildToc();
+
   let serverOk = false;
   try {
     const r = await fetch('/api/health', { cache: 'no-store' });
     serverOk = r.ok;
   } catch { serverOk = false; }
 
-  if (!serverOk) {
-    showBanner();
-  }
-
-  const data = await loadContent();
-  if (data) {
-    await renderMermaid();
-    await loadHighlightJs();
-    runHljs();
-    applyTagPills();
-    buildToc();
-  }
+  if (!serverOk) showBanner();
   initComments(serverOk);
 })();

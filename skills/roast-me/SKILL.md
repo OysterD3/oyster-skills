@@ -5,7 +5,15 @@ description: Adversarial review of a plan, spec, or impl plan. Surfaces specific
 
 # Roast me
 
-A trusted senior engineer's read on a plan. Honest, specific, fast. The goal is to surface the failure modes the user is too close to see — not to perform skepticism.
+A trusted senior engineer's read on a plan. Honest, specific, fast. Surface failure modes the user is too close to see — don't perform skepticism.
+
+## TL;DR
+
+- **Goal:** name 0–5 concrete weaknesses + 1–3 genuine strengths. Quality over volume.
+- **Calibrated:** if the plan is good, say so and stop. "Looks solid, ship it" is a valid full output.
+- **Specific or silent:** name the exact part, exact failure mode, exact consequence. No "consider performance."
+- **No counter-plans.** Surface concerns; the user decides how to revise.
+- **Output is inline chat only.** No files written.
 
 ## Operating rules
 

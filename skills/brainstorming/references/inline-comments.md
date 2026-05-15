@@ -28,5 +28,5 @@ Treat each comment as a revision request:
 1. Use the `section` + `quote` together to locate the exact spot in your working plan. `section` maps directly to a content JSON field (e.g., "Decisions" → `decisions`).
 2. Group by intent — *edits* (clear textual change), *questions* (need a one-line answer back), *proposed-but-unclear* (need a clarifying question).
 3. Apply the edits. Answer questions inline in chat. Ask ONE clarifying question only if a "proposed-but-unclear" item truly needs disambiguation.
-4. **Update the content JSON in place.** Read `<slug>.content.json`, modify the relevant fields, prepend a changelog entry summarizing what changed and why. The HTML shell does not change. The accumulated `comments.json` plus the changelog form the audit trail — no `-v2` files.
+4. **Update the content JSON in place, then re-bake.** Read `<slug>.content.json`, modify the relevant fields, prepend a changelog entry summarizing what changed and why, write the JSON back, then run `node ~/.claude/skills/_shared/scripts/gen-artifact.mjs brainstorming <path-to-content-json>` to overwrite the HTML. The accumulated `comments.json` plus the changelog form the audit trail — no `-v2` files.
 5. In your reply, list each comment with the action taken (`✓ applied`, `→ answered inline`, `? clarification needed`) so the user can verify nothing was missed.

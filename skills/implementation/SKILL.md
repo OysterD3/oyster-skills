@@ -5,7 +5,17 @@ description: Execute an approved impl plan via parallel general-purpose subagent
 
 # Implementation
 
-The chain's terminal skill. Take an approved impl plan + test review and execute it by orchestrating parallel general-purpose subagents in isolated git worktrees, with a per-wave human checkpoint.
+The chain's terminal skill. Execute an approved impl plan + test review by orchestrating parallel subagents in isolated git worktrees, with a per-wave human checkpoint.
+
+## TL;DR
+
+- **Inputs:** approved impl plan MD + test review MD (ask if missing).
+- **Execution:** topological waves from the plan's DAG; independent steps in a wave run in parallel as `general-purpose` subagents.
+- **Worktrees:** `<repo>/.worktrees/<plan>/main` consolidated, plus per-step forks. All managed by `scripts/worktree.sh` — never hand-roll `git worktree`.
+- **Gate after every wave.** User sees a staged diff and says go before the next wave fires.
+- **Never commits.** Per-step commits exist inside the consolidated worktree but collapse to one staged diff at hand-off.
+- **Stop on first failure.** No silent retries.
+- **Concurrency cap 3.** User can override per-invocation.
 
 ## Operating rules
 

@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{TITLE}}</title>
-<link rel="stylesheet" href="/__shell/_shared/shell.css">
+<title>{{DOCUMENT_TITLE}}</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github-dark.min.css">
-{{EXTRA_STYLESHEETS}}
+<style>
+{{INLINE_STYLE}}
+</style>
 </head>
 <body>
 <div class="page">
@@ -16,11 +17,11 @@
   </aside>
   <main>
     <header>
-      <div class="meta">{{META_LABEL}} · <span data-bind="date"></span></div>
-      <h1 data-bind="title"></h1>
+      <div class="meta">{{META_LABEL}} · {{DATE}}</div>
+      <h1>{{TITLE_VALUE}}</h1>
 {{GOAL_BLOCK}}
 {{CHANGELOG_BLOCK}}
-      <noscript><span class="warn">This review needs JavaScript and a running review server (or tunnel). Opening the file directly won't load content.</span></noscript>
+      <noscript><span class="warn">This document needs JavaScript for diagrams and inline comments. The text content renders without it.</span></noscript>
     </header>
 
 {{SECTIONS}}
@@ -33,19 +34,21 @@
 </div>
 
 <div class="cm-banner" id="cmBanner">
-  Review server not running. Start it with <code>node ~/.claude/skills/brainstorming/scripts/review-server.mjs</code> from your project root, then reload.
+  Review server not running. Inline comments are disabled. Start <code>node ~/.claude/skills/brainstorming/scripts/review-server.mjs</code> from your project root to enable.
 </div>
 <button class="cm-select-btn" id="cmSelectBtn">💬 Comment</button>
 <div class="cm-panel" id="cmPanel">
   <div class="cm-list">
     <h3>Comments</h3>
-    <div class="cm-status" id="cmStatus">connecting…</div>
+    <div class="cm-status" id="cmStatus">checking server…</div>
     <div id="cmItems"></div>
     <button class="cm-clear" id="cmClear">Clear all comments</button>
   </div>
   <button class="cm-toggle" id="cmToggle">Comments <span class="cm-badge" id="cmBadge">0</span></button>
 </div>
 
-<script type="module" src="/__shell/_shared/shell.js"></script>
+<script type="module">
+{{INLINE_SCRIPT}}
+</script>
 </body>
 </html>
